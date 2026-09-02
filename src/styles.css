@@ -382,6 +382,10 @@ input:focus-visible {
   border-bottom-color: var(--red);
 }
 
+.answer-input:focus-visible {
+  outline: none;
+}
+
 .drill-sheet.correct .answer-input {
   border-bottom-style: solid;
   border-bottom-color: var(--green);
