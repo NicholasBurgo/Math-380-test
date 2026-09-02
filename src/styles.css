@@ -87,6 +87,7 @@ button {
   border: 1px solid var(--ink);
   border-radius: 8px;
   padding: 8px 16px;
+  white-space: nowrap;
 }
 
 .btn:hover {
@@ -339,6 +340,8 @@ input:focus-visible {
 .ask {
   color: var(--ink-soft);
   font-size: 1.05rem;
+  text-align: center;
+  max-width: 54ch;
 }
 
 .problem-text {
@@ -534,6 +537,18 @@ input:focus-visible {
 /* ---------- small screens ---------- */
 
 @media (max-width: 640px) {
+  .sheet {
+    padding: 24px 20px 72px;
+  }
+
+  .home-head h1 {
+    font-size: 2.1rem;
+  }
+
+  .btn {
+    padding: 10px 16px;
+  }
+
   .topic-row {
     flex-wrap: wrap;
   }
@@ -542,8 +557,43 @@ input:focus-visible {
     flex-basis: 100%;
   }
 
+  .drill-head {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    row-gap: 6px;
+    align-items: center;
+  }
+
+  .drill-head .back {
+    justify-self: start;
+  }
+
+  .drill-rep {
+    justify-self: end;
+  }
+
+  .drill-title {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+
+  .problem .katex {
+    font-size: 1.8rem;
+  }
+
+  .problem-small .katex {
+    font-size: 1.15rem;
+  }
+
+  .drill-foot {
+    gap: 16px;
+    font-size: 0.72rem;
+  }
+
   .summary-stats {
     gap: 22px;
+    flex-wrap: wrap;
   }
 }
 

@@ -200,6 +200,10 @@ export default function Drill({ cls, topic, onExit }) {
             onChange={e => setInput(e.target.value)}
             placeholder={problem.placeholder ?? 'answer'}
             autoComplete="off"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="go"
             aria-label="answer"
           />
           <button className="btn" type="submit">
