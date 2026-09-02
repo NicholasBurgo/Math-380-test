@@ -7,12 +7,12 @@ export function randomTemplate(topic) {
   return topic.templates[Math.floor(Math.random() * topic.templates.length)]
 }
 
-export function pickWeightedTopic(cls) {
-  const weights = cls.topics.map(t => WEIGHT[heatOf(getSkill(cls.id, t.id))])
+export function pickWeightedTopic(classId, topics) {
+  const weights = topics.map(t => WEIGHT[heatOf(getSkill(classId, t.id))])
   let r = Math.random() * weights.reduce((a, b) => a + b, 0)
-  for (let i = 0; i < cls.topics.length; i++) {
+  for (let i = 0; i < topics.length; i++) {
     r -= weights[i]
-    if (r <= 0) return cls.topics[i]
+    if (r <= 0) return topics[i]
   }
-  return cls.topics[cls.topics.length - 1]
+  return topics[topics.length - 1]
 }

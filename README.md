@@ -29,7 +29,8 @@ src/
   engine/           drill queue, answer checking, stats/heat, topic picking
 ```
 
-- A **class** = `{ id, name, term, topics: [...] }`
+- A **class** = `{ id, name, term, units: [...] }`
+- A **unit** = one test's material = `{ id, name, detail?, topics: [...] }` — each unit gets its own Mixed set button
 - A **topic** = one skill = `{ id, name, description, templates: [...] }`
 - A **template** = one problem generator:
   `generate() -> { latex, answer, answerLatex?, ask?, placeholder? }`

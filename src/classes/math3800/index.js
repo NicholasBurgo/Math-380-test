@@ -10,6 +10,22 @@ import expectation from './expectation.js'
 export default {
   id: 'math3800',
   name: 'Math 3800',
-  term: 'Probability & Statistics — Chapters 1–3',
-  topics: [counting, events, probRules, conditional, independence, bayes, discretePdf, expectation],
+  term: 'Probability & Statistics',
+  units: [
+    {
+      id: 'test1',
+      name: 'Test 1',
+      detail: 'Chapters 1–3 (part 1)',
+      topics: [
+        counting,
+        events,
+        probRules,
+        conditional,
+        independence,
+        bayes,
+        discretePdf,
+        expectation,
+      ],
+    },
+  ],
 }

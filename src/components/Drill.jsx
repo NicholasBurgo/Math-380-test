@@ -11,14 +11,15 @@ function answerDisplay(p) {
   return p.answerLatex ?? String(p.answer)
 }
 
-export default function Drill({ cls, topic, onExit }) {
+export default function Drill({ cls, topic, unit, onExit }) {
   const session = useMemo(
     () =>
       createSession(() => {
-        const t = topic ?? pickWeightedTopic(cls)
+        const pool = topic ? [topic] : unit ? unit.topics : cls.units.flatMap(u => u.topics)
+        const t = topic ?? pickWeightedTopic(cls.id, pool)
         return { topicId: t.id, topicName: t.name, ...randomTemplate(t).generate() }
       }),
-    [cls, topic],
+    [cls, topic, unit],
   )
 
   const [current, setCurrent] = useState(() => session.next())
@@ -86,8 +87,8 @@ export default function Drill({ cls, topic, onExit }) {
         .slice(0, 3)
       const page = {
         date: new Date().toISOString(),
-        topicId: topic?.id ?? 'mixed',
-        topicName: topic?.name ?? 'Mixed set',
+        topicId: topic?.id ?? `${unit?.id ?? 'class'}-mixed`,
+        topicName: topic?.name ?? `${unit?.name ?? cls.name} — mixed`,
         setNumber: set.n,
         reps: set.reps,
         correct: set.correct,
@@ -174,7 +175,7 @@ export default function Drill({ cls, topic, onExit }) {
           ← {cls.name}
         </button>
         <span className="drill-title mathx">
-          {topic ? topic.name : 'Mixed set'} — {dateStr}
+          {topic ? topic.name : `${unit?.name ?? cls.name} mixed`} — {dateStr}
         </span>
         <span className="drill-rep">
           set {set.n} · rep {Math.min(set.reps + (feedback === null ? 1 : 0), SET_SIZE)}/{SET_SIZE}

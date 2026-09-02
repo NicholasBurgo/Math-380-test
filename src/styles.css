@@ -154,6 +154,24 @@ input:focus-visible {
   font-size: 0.85rem;
 }
 
+.unit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.unit-head h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.unit-detail {
+  color: var(--faint);
+  font-size: 0.8rem;
+}
+
 .topic-list {
   list-style: none;
   margin: 0;

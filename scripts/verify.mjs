@@ -248,7 +248,7 @@ const derive = {
 
 const SAMPLES = { 'counting/codes': 300, 'counting/indistinguishable': 300 }
 
-for (const topic of cls.topics) {
+for (const topic of cls.units.flatMap(u => u.topics)) {
   for (const t of topic.templates) {
     const key = `${topic.id}/${t.id}`
     const checker = derive[key]

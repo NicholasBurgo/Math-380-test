@@ -14,7 +14,7 @@ export default function Home({ onDrill }) {
       ))}
 
       <p className="foot-note">
-        New class = new folder in <code>src/classes/</code>. Real topics arrive with the notes.
+        New class = new folder in <code>src/classes/</code>. New test = new unit in the class file.
       </p>
     </div>
   )
@@ -30,34 +30,45 @@ function ClassBlock({ cls, onDrill }) {
           <h2 className="mathx">{cls.name}</h2>
           <p className="class-term">{cls.term}</p>
         </div>
-        <button className="btn" onClick={() => onDrill(cls, null)}>
-          Mixed set
-        </button>
       </div>
 
-      <ul className="topic-list">
-        {cls.topics.map(t => {
-          const s = getSkill(cls.id, t.id)
-          const heat = heatOf(s)
-          const acc = s && s.attempts ? Math.round((100 * s.correct) / s.attempts) : null
-          return (
-            <li key={t.id} className="topic-row">
-              <div className="topic-main">
-                <span className="topic-name">{t.name}</span>
-                <span className="topic-desc">{t.description}</span>
-              </div>
-              <span className={`pill ${heat}`}>{heat}</span>
-              {reviewDue(s) && <span className="pill due">review due</span>}
-              <span className="topic-stats">
-                {s ? `${s.attempts} reps · ${acc}% · best ${s.bestStreak}` : 'no reps yet'}
-              </span>
-              <button className="btn ghost" onClick={() => onDrill(cls, t)}>
-                Drill
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+      {cls.units.map(unit => (
+        <div key={unit.id} className="unit">
+          <div className="unit-head">
+            <div>
+              <h3 className="mathx">{unit.name}</h3>
+              {unit.detail && <p className="unit-detail">{unit.detail}</p>}
+            </div>
+            <button className="btn" onClick={() => onDrill(cls, null, unit)}>
+              Mixed set
+            </button>
+          </div>
+
+          <ul className="topic-list">
+            {unit.topics.map(t => {
+              const s = getSkill(cls.id, t.id)
+              const heat = heatOf(s)
+              const acc = s && s.attempts ? Math.round((100 * s.correct) / s.attempts) : null
+              return (
+                <li key={t.id} className="topic-row">
+                  <div className="topic-main">
+                    <span className="topic-name">{t.name}</span>
+                    <span className="topic-desc">{t.description}</span>
+                  </div>
+                  <span className={`pill ${heat}`}>{heat}</span>
+                  {reviewDue(s) && <span className="pill due">review due</span>}
+                  <span className="topic-stats">
+                    {s ? `${s.attempts} reps · ${acc}% · best ${s.bestStreak}` : 'no reps yet'}
+                  </span>
+                  <button className="btn ghost" onClick={() => onDrill(cls, t, unit)}>
+                    Drill
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ))}
 
       {pages.length > 0 && (
         <div className="pages">
