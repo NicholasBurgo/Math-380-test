@@ -310,14 +310,13 @@ input:focus-visible {
   flex: 1;
 }
 
-.foot-note {
+.site-foot {
+  margin-top: 40px;
+  text-align: center;
   color: var(--faint);
-  font-size: 0.85rem;
-}
-
-.foot-note code {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
 }
 
 /* ---------- drill ---------- */

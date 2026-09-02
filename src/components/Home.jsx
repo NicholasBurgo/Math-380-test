@@ -13,6 +13,16 @@ export default function Home({ onDrill }) {
       {classes.map(cls => (
         <ClassBlock key={cls.id} cls={cls} onDrill={onDrill} />
       ))}
+
+      <footer className="site-foot">
+        Updated{' '}
+        {new Date(__BUILD_DATE__).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })}{' '}
+        · made by Nicholas Burgo
+      </footer>
     </div>
   )
 }
