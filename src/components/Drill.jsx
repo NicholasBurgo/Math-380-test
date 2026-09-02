@@ -88,7 +88,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
       const page = {
         date: new Date().toISOString(),
         topicId: topic?.id ?? `${unit?.id ?? 'class'}-mixed`,
-        topicName: topic?.name ?? `${unit?.name ?? cls.name} — mixed`,
+        topicName: topic?.name ?? `${unit?.name ?? cls.name} mixed`,
         setNumber: set.n,
         reps: set.reps,
         correct: set.correct,
@@ -120,7 +120,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
         </header>
         <div className="page-card">
           <h2 className="mathx">
-            Set {summary.setNumber} — {summary.topicName}
+            Set {summary.setNumber}: {summary.topicName}
           </h2>
           <dl className="summary-stats">
             <div>
@@ -153,7 +153,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
               </ul>
             </div>
           ) : (
-            <p className="summary-clean">Clean set — nothing missed.</p>
+            <p className="summary-clean">Clean set. Nothing missed.</p>
           )}
           <div className="summary-actions">
             <button className="btn" onClick={nextSet}>
@@ -175,7 +175,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
           ← {cls.name}
         </button>
         <span className="drill-title mathx">
-          {topic ? topic.name : `${unit?.name ?? cls.name} mixed`} — {dateStr}
+          {topic ? topic.name : `${unit?.name ?? cls.name} mixed`} · {dateStr}
         </span>
         <span className="drill-rep">
           set {set.n} · rep {Math.min(set.reps + (feedback === null ? 1 : 0), SET_SIZE)}/{SET_SIZE}
@@ -184,7 +184,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
 
       <main className="drill-main">
         <div className="problem-meta">
-          {current.retry && <span className="retry-chip">missed earlier — rep it again</span>}
+          {current.retry && <span className="retry-chip">missed earlier · rep it again</span>}
           {!topic && <span className="topic-tag">{problem.topicName}</span>}
         </div>
         {problem.ask && <p className="ask mathx">{problem.ask}</p>}
@@ -213,10 +213,10 @@ export default function Drill({ cls, topic, unit, onExit }) {
         </form>
 
         <div className="feedback">
-          {feedback === 'correct' && <p className="fb ok">✓ correct — Enter for next rep</p>}
+          {feedback === 'correct' && <p className="fb ok">✓ correct · Enter for next rep</p>}
           {feedback === 'wrong' && (
             <p className="fb bad">
-              ✗ <MathText latex={answerDisplay(problem)} /> — comes back in 2 reps
+              ✗ <MathText latex={answerDisplay(problem)} /> · comes back in 2 reps
             </p>
           )}
         </div>
@@ -224,7 +224,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
 
       <footer className="drill-foot">
         <span>streak {set.streak}</span>
-        <span>{acc === null ? '— %' : `${acc} %`}</span>
+        <span>{acc === null ? '- %' : `${acc} %`}</span>
         <span>{session.pending} queued from misses</span>
       </footer>
     </div>

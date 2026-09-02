@@ -1,8 +1,8 @@
 // Independent audit of every Math 3800 generator.
 //
 // For each generated problem, the checker re-derives the answer FROM THE
-// DISPLAYED QUESTION (text/latex/ask) using separate math — brute-force
-// enumeration where feasible — and compares it to the generator's stored
+// DISPLAYED QUESTION (text/latex/ask) using separate math - brute-force
+// enumeration where feasible - and compares it to the generator's stored
 // answer. It also parses answerLatex (the solution shown on a miss) and
 // confirms it equals the checked answer. A mismatch in either place means
 // the app would drill something wrong.
@@ -55,7 +55,7 @@ function enumerateCodes(m, k, norep) {
   return count
 }
 function enumerateMultisetOrders(counts) {
-  // distinct arrangements via DFS with counts — independent of the formula
+  // distinct arrangements via DFS with counts - independent of the formula
   let total = 0
   const n = counts.reduce((a, b) => a + b, 0)
   function go(depth, c) {
@@ -253,7 +253,7 @@ for (const topic of cls.units.flatMap(u => u.topics)) {
     const key = `${topic.id}/${t.id}`
     const checker = derive[key]
     if (!checker) {
-      failures.push(`${key}: NO INDEPENDENT CHECKER — not audited`)
+      failures.push(`${key}: NO INDEPENDENT CHECKER - not audited`)
       continue
     }
     const n = SAMPLES[key] ?? 2000

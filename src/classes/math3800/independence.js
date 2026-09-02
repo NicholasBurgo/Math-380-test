@@ -4,7 +4,7 @@ import { fmt } from './util.js'
 export default {
   id: 'independence',
   name: 'Independence',
-  description: '§2.3 — multiplication rule for independent events.',
+  description: '§2.3: multiplication rule for independent events.',
   templates: [
     {
       id: 'all-work',

@@ -15,7 +15,7 @@ const setStr = s => `{${s.join(', ')}}`
 export default {
   id: 'events',
   name: 'Sample spaces & events',
-  description: '§1.2 — unions, intersections, complements, mutual exclusivity.',
+  description: '§1.2: unions, intersections, complements, mutual exclusivity.',
   templates: [
     {
       id: 'set-count',

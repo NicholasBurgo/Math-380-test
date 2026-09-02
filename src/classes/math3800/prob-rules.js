@@ -4,7 +4,7 @@ import { fmt } from './util.js'
 export default {
   id: 'prob-rules',
   name: 'Probability rules',
-  description: '§2.1 — axioms, complement rule, addition rule.',
+  description: '§2.1: axioms, complement rule, addition rule.',
   templates: [
     {
       id: 'category-sum',

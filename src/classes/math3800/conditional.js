@@ -4,7 +4,7 @@ import { fmt, gcd } from './util.js'
 export default {
   id: 'conditional',
   name: 'Conditional probability',
-  description: '§2.2 — P(B|A) = P(A∩B)/P(A).',
+  description: '§2.2: P(B|A) = P(A∩B)/P(A).',
   templates: [
     {
       id: 'formula',

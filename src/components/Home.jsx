@@ -12,10 +12,6 @@ export default function Home({ onDrill }) {
       {classes.map(cls => (
         <ClassBlock key={cls.id} cls={cls} onDrill={onDrill} />
       ))}
-
-      <p className="foot-note">
-        New class = new folder in <code>src/classes/</code>. New test = new unit in the class file.
-      </p>
     </div>
   )
 }

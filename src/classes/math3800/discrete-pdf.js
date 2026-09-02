@@ -6,7 +6,7 @@ const XS = [0, 1, 2, 3, 4]
 export default {
   id: 'discrete-pdf',
   name: 'Discrete pdfs & cdfs',
-  description: '§3.1–3.2 — pdfs, cdfs, geometric patterns.',
+  description: '§3.1–3.2: pdfs, cdfs, geometric patterns.',
   templates: [
     {
       id: 'missing-value',

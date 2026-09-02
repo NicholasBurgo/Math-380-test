@@ -33,7 +33,7 @@ export function checkAnswer(raw, problem) {
   if (n === null) return false
   const tol = problem.tolerance ?? 1e-6
   if (Math.abs(n - problem.answer) < tol) return true
-  // probability answers: "16" for 0.16 counts — they meant percent
+  // probability answers: "16" for 0.16 counts - they meant percent
   if (problem.answer > 0 && problem.answer < 1 && n > 1 && Math.abs(n / 100 - problem.answer) < tol) {
     return true
   }

@@ -4,7 +4,7 @@ import { fmt } from './util.js'
 export default {
   id: 'bayes',
   name: "Bayes' theorem",
-  description: '§2.4 — reversing conditional probabilities.',
+  description: '§2.4: reversing conditional probabilities.',
   templates: [
     {
       id: 'two-event',

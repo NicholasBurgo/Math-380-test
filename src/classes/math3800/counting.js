@@ -4,7 +4,7 @@ import { factorial } from './util.js'
 export default {
   id: 'counting',
   name: 'Counting',
-  description: '§1.3 — permutations, combinations, multiplication principle.',
+  description: '§1.3: permutations, combinations, multiplication principle.',
   templates: [
     {
       id: 'permutation',

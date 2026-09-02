@@ -12,7 +12,7 @@ function save(db) {
   try {
     localStorage.setItem(KEY, JSON.stringify(db))
   } catch {
-    // storage full or blocked — stats just don't persist
+    // storage full or blocked - stats just don't persist
   }
 }
 
@@ -68,7 +68,7 @@ export function heatOf(skill) {
   return 'cold'
 }
 
-// Mastered but untouched for 3+ days — time for a warm-up.
+// Mastered but untouched for 3+ days - time for a warm-up.
 export function reviewDue(skill) {
   if (!skill || heatOf(skill) !== 'mastered' || !skill.last) return false
   return Date.now() - Date.parse(skill.last) > 3 * 24 * 60 * 60 * 1000

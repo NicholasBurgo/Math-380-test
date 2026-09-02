@@ -12,7 +12,7 @@ function distinctXs(count, lo, hi) {
 export default {
   id: 'expectation',
   name: 'Expectation & variance',
-  description: '§3.3 — mean, variance, standard deviation.',
+  description: '§3.3: mean, variance, standard deviation.',
   templates: [
     {
       id: 'mean-table',
@@ -60,7 +60,7 @@ export default {
         const eTerm = e === 0 ? '' : e > 0 ? ` + ${e}` : ` - ${-e}`
         const ans = c * c * vX + d * d * vY
         return {
-          ask: 'Rules for variance — X, Y independent.',
+          ask: 'Rules for variance: X, Y independent.',
           text: `Var X = ${vX} and Var Y = ${vY}.`,
           latex: `\\operatorname{Var}[${c}X - ${d}Y${eTerm}] = \\,?`,
           answer: ans,
