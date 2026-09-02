@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { classes } from '../classes/index.js'
 import { getSkill, heatOf, reviewDue, getPages } from '../engine/stats.js'
 
@@ -29,41 +30,7 @@ function ClassBlock({ cls, onDrill }) {
       </div>
 
       {cls.units.map(unit => (
-        <div key={unit.id} className="unit">
-          <div className="unit-head">
-            <div>
-              <h3 className="mathx">{unit.name}</h3>
-              {unit.detail && <p className="unit-detail">{unit.detail}</p>}
-            </div>
-            <button className="btn" onClick={() => onDrill(cls, null, unit)}>
-              Mixed set
-            </button>
-          </div>
-
-          <ul className="topic-list">
-            {unit.topics.map(t => {
-              const s = getSkill(cls.id, t.id)
-              const heat = heatOf(s)
-              const acc = s && s.attempts ? Math.round((100 * s.correct) / s.attempts) : null
-              return (
-                <li key={t.id} className="topic-row">
-                  <div className="topic-main">
-                    <span className="topic-name">{t.name}</span>
-                    <span className="topic-desc">{t.description}</span>
-                  </div>
-                  <span className={`pill ${heat}`}>{heat}</span>
-                  {reviewDue(s) && <span className="pill due">review due</span>}
-                  <span className="topic-stats">
-                    {s ? `${s.attempts} reps · ${acc}% · best ${s.bestStreak}` : 'no reps yet'}
-                  </span>
-                  <button className="btn ghost" onClick={() => onDrill(cls, t, unit)}>
-                    Drill
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
+        <UnitBlock key={unit.id} cls={cls} unit={unit} onDrill={onDrill} />
       ))}
 
       {pages.length > 0 && (
@@ -85,5 +52,51 @@ function ClassBlock({ cls, onDrill }) {
         </div>
       )}
     </section>
+  )
+}
+
+function UnitBlock({ cls, unit, onDrill }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="unit">
+      <div className="unit-head">
+        <button className="unit-toggle" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+          <span className={`chev ${open ? 'open' : ''}`}>▸</span>
+          <span className="unit-name mathx">{unit.name}</span>
+          {unit.detail && <span className="unit-detail">{unit.detail}</span>}
+          <span className="unit-count">{unit.topics.length} topics</span>
+        </button>
+        <button className="btn" onClick={() => onDrill(cls, null, unit)}>
+          Mixed set
+        </button>
+      </div>
+
+      {open && (
+        <ul className="topic-list">
+          {unit.topics.map(t => {
+            const s = getSkill(cls.id, t.id)
+            const heat = heatOf(s)
+            const acc = s && s.attempts ? Math.round((100 * s.correct) / s.attempts) : null
+            return (
+              <li key={t.id} className="topic-row">
+                <div className="topic-main">
+                  <span className="topic-name">{t.name}</span>
+                  <span className="topic-desc">{t.description}</span>
+                </div>
+                <span className={`pill ${heat}`}>{heat}</span>
+                {reviewDue(s) && <span className="pill due">review due</span>}
+                <span className="topic-stats">
+                  {s ? `${s.attempts} reps · ${acc}% · best ${s.bestStreak}` : 'no reps yet'}
+                </span>
+                <button className="btn ghost" onClick={() => onDrill(cls, t, unit)}>
+                  Drill
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
   )
 }

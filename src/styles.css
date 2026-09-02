@@ -162,7 +162,31 @@ input:focus-visible {
   margin-top: 22px;
 }
 
-.unit-head h3 {
+.unit-toggle {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  text-align: left;
+  color: var(--ink);
+}
+
+.unit-toggle .chev {
+  display: inline-block;
+  color: var(--faint);
+  font-size: 0.85rem;
+  transition: transform 0.15s ease;
+}
+
+.unit-toggle .chev.open {
+  transform: rotate(90deg);
+}
+
+.unit-name {
   font-size: 1.2rem;
   font-weight: 600;
 }
@@ -170,6 +194,12 @@ input:focus-visible {
 .unit-detail {
   color: var(--faint);
   font-size: 0.8rem;
+}
+
+.unit-count {
+  color: var(--faint);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
 }
 
 .topic-list {
