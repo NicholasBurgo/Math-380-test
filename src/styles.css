@@ -341,13 +341,32 @@ input:focus-visible {
   font-size: 1.05rem;
 }
 
+.problem-text {
+  max-width: 54ch;
+  text-align: center;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
 .problem {
   padding: 8px 0 4px;
   transition: color 0.15s ease;
+  max-width: 100%;
+}
+
+.problem .katex-display {
+  margin: 0;
+  padding: 4px 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .problem .katex {
   font-size: 2.2rem;
+}
+
+.problem-small .katex {
+  font-size: 1.45rem;
 }
 
 .drill-sheet.correct .problem {

@@ -187,7 +187,8 @@ export default function Drill({ cls, topic, onExit }) {
           {!topic && <span className="topic-tag">{problem.topicName}</span>}
         </div>
         {problem.ask && <p className="ask mathx">{problem.ask}</p>}
-        <div className="problem">
+        {problem.text && <p className="problem-text">{problem.text}</p>}
+        <div className={problem.size === 'small' ? 'problem problem-small' : 'problem'}>
           <MathText latex={problem.latex} display />
         </div>
 
