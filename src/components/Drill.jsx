@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MathText from './MathText.jsx'
+import ScratchPad from './ScratchPad.jsx'
 import { createSession } from '../engine/drill.js'
 import { checkAnswer } from '../engine/check.js'
+import { buildChoices } from '../engine/choices.js'
 import { recordAnswer, recordPage } from '../engine/stats.js'
 import { pickWeightedTopic, randomTemplate } from '../engine/pick.js'
 
@@ -9,6 +11,22 @@ const SET_SIZE = 20
 
 function answerDisplay(p) {
   return p.answerLatex ?? String(p.answer)
+}
+
+function loadPref(key, fallback) {
+  try {
+    return localStorage.getItem(key) ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+function savePref(key, value) {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // fine, preference just won't stick
+  }
 }
 
 export default function Drill({ cls, topic, unit, onExit }) {
@@ -25,34 +43,38 @@ export default function Drill({ cls, topic, unit, onExit }) {
   const [current, setCurrent] = useState(() => session.next())
   const [input, setInput] = useState('')
   const [feedback, setFeedback] = useState(null) // null | 'correct' | 'wrong'
+  const [picked, setPicked] = useState(null)
+  const [mode, setModeState] = useState(() => loadPref('mathreps.answerMode', 'typed'))
+  const [scratch, setScratchState] = useState(() => loadPref('mathreps.scratch', '0') === '1')
   const [set, setSet] = useState({ n: 1, reps: 0, correct: 0, streak: 0, best: 0, misses: {} })
   const [summary, setSummary] = useState(null)
   const inputRef = useRef(null)
 
-  useEffect(() => {
-    if (!summary) inputRef.current?.focus()
-  }, [current, feedback, summary])
-
-  useEffect(() => {
-    function onKey(e) {
-      if (e.key === 'Escape') onExit()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onExit])
-
   const problem = current.problem
-  const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
-  const acc = set.reps ? Math.round((100 * set.correct) / set.reps) : null
 
-  function handleSubmit(e) {
-    e.preventDefault()
-    if (feedback !== null) {
-      advance()
-      return
-    }
-    if (!input.trim()) return
-    const ok = checkAnswer(input, problem)
+  const choices = useMemo(() => {
+    if (mode !== 'choices' || summary) return null
+    problem._choices ??= buildChoices(problem)
+    return problem._choices
+  }, [mode, problem, summary])
+
+  useEffect(() => {
+    if (!summary && mode === 'typed') inputRef.current?.focus()
+  }, [current, feedback, summary, mode])
+
+  function setMode(m) {
+    setModeState(m)
+    savePref('mathreps.answerMode', m)
+  }
+
+  function toggleScratch() {
+    setScratchState(s => {
+      savePref('mathreps.scratch', s ? '0' : '1')
+      return !s
+    })
+  }
+
+  function applyAnswer(ok) {
     session.answer(ok)
     recordAnswer(cls.id, problem.topicId, ok)
     setFeedback(ok ? 'correct' : 'wrong')
@@ -78,8 +100,25 @@ export default function Drill({ cls, topic, unit, onExit }) {
     })
   }
 
+  function handleSubmit(e) {
+    e.preventDefault()
+    if (feedback !== null) {
+      advance()
+      return
+    }
+    if (!input.trim()) return
+    applyAnswer(checkAnswer(input, problem))
+  }
+
+  function submitChoice(choice, index) {
+    if (feedback !== null) return
+    setPicked(index)
+    applyAnswer(choice.correct)
+  }
+
   function advance() {
     setFeedback(null)
+    setPicked(null)
     setInput('')
     if (set.reps >= SET_SIZE) {
       const topMisses = Object.values(set.misses)
@@ -107,6 +146,27 @@ export default function Drill({ cls, topic, unit, onExit }) {
     setSet(s => ({ n: s.n + 1, reps: 0, correct: 0, streak: 0, best: 0, misses: {} }))
     setCurrent(session.next())
   }
+
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') {
+        onExit()
+        return
+      }
+      if (mode !== 'choices' || summary) return
+      if (feedback === null && ['1', '2', '3', '4'].includes(e.key)) {
+        const c = choices?.[Number(e.key) - 1]
+        if (c) submitChoice(c, Number(e.key) - 1)
+      } else if (feedback !== null && e.key === 'Enter') {
+        advance()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
+  const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+  const acc = set.reps ? Math.round((100 * set.correct) / set.reps) : null
 
   if (summary) {
     return (
@@ -182,6 +242,20 @@ export default function Drill({ cls, topic, unit, onExit }) {
         </span>
       </header>
 
+      <div className="drill-tools">
+        <div className="mode-toggle" role="group" aria-label="answer mode">
+          <button className={mode === 'typed' ? 'on' : ''} onClick={() => setMode('typed')}>
+            Typed
+          </button>
+          <button className={mode === 'choices' ? 'on' : ''} onClick={() => setMode('choices')}>
+            Choices
+          </button>
+        </div>
+        <button className={`tool-btn ${scratch ? 'on' : ''}`} onClick={toggleScratch}>
+          ✎ Scratch
+        </button>
+      </div>
+
       <main className="drill-main">
         <div className="problem-meta">
           {current.retry && <span className="retry-chip">missed earlier · rep it again</span>}
@@ -193,24 +267,52 @@ export default function Drill({ cls, topic, unit, onExit }) {
           <MathText latex={problem.latex} display />
         </div>
 
-        <form className="answer-form" onSubmit={handleSubmit}>
-          <input
-            ref={inputRef}
-            className="answer-input"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder={problem.placeholder ?? 'answer'}
-            autoComplete="off"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            enterKeyHint="go"
-            aria-label="answer"
-          />
-          <button className="btn" type="submit">
-            {feedback === null ? 'Check' : 'Next'}
-          </button>
-        </form>
+        {mode === 'typed' ? (
+          <form className="answer-form" onSubmit={handleSubmit}>
+            <input
+              ref={inputRef}
+              className="answer-input"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder={problem.placeholder ?? 'answer'}
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="go"
+              aria-label="answer"
+            />
+            <button className="btn" type="submit">
+              {feedback === null ? 'Check' : 'Next'}
+            </button>
+          </form>
+        ) : (
+          <div className="choices-zone">
+            <div className={`choices ${choices?.length === 2 ? 'two' : ''}`}>
+              {choices?.map((c, i) => {
+                let cls2 = 'choice'
+                if (feedback !== null && c.correct) cls2 += ' right'
+                else if (feedback !== null && picked === i) cls2 += ' picked-wrong'
+                return (
+                  <button
+                    key={i}
+                    className={cls2}
+                    onClick={() => submitChoice(c, i)}
+                    disabled={feedback !== null}
+                  >
+                    <span className="choice-key">{i + 1}</span>
+                    {c.label}
+                  </button>
+                )
+              })}
+            </div>
+            {feedback !== null && (
+              <button className="btn choices-next" onClick={advance}>
+                Next
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="feedback">
           {feedback === 'correct' && <p className="fb ok">✓ correct · Enter for next rep</p>}
@@ -219,7 +321,15 @@ export default function Drill({ cls, topic, unit, onExit }) {
               ✗ <MathText latex={answerDisplay(problem)} /> · comes back in 2 reps
             </p>
           )}
+          {feedback === 'wrong' && problem.hint && (
+            <div className="hint-card">
+              {problem.hint.latex && <MathText latex={problem.hint.latex} />}
+              <p>{problem.hint.text}</p>
+            </div>
+          )}
         </div>
+
+        {scratch && <ScratchPad clearKey={current} />}
       </main>
 
       <footer className="drill-foot">

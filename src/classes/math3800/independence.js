@@ -5,6 +5,21 @@ export default {
   id: 'independence',
   name: 'Independence',
   description: '§2.3: multiplication rule for independent events.',
+  learn: {
+    formulas: [
+      { label: 'Independence test', latex: 'P(A \\cap B) = P(A)\\,P(B)' },
+      {
+        label: 'All n independent events',
+        latex: 'P(A_1 \\cap \\cdots \\cap A_n) = P(A_1) \\cdots P(A_n)',
+      },
+      { label: 'At least one', latex: 'P(\\text{at least one}) = 1 - P(\\text{none})' },
+    ],
+    how: [
+      'Independent events multiply: all n work means p times itself n times.',
+      'Checking independence: multiply P(A)P(B) and compare to the given P(A and B). Equal means independent.',
+      '"At least one" goes through the back door: find P(none) first, then take 1 minus it.',
+    ],
+  },
   templates: [
     {
       id: 'all-work',
@@ -20,6 +35,11 @@ export default {
           answerLatex: `${fmt(p / 100)}^{${n}} = ${fmt(ans)}`,
           placeholder: 'e.g. 0.729',
           tolerance: 0.005,
+          hint: {
+            latex: 'P(\\text{all}) = p^n',
+            text: `Independent: multiply the reliability by itself once per system: ${fmt(p / 100)} × ${fmt(p / 100)} × ...`,
+          },
+          distractors: [p / 100, 1 - ans, Math.min(0.99, (n * p) / 100)],
         }
       },
     },
@@ -44,6 +64,10 @@ export default {
           answer: yes ? 'yes' : 'no',
           answerLatex: `\\text{${yes ? 'yes' : 'no'}} \\;\\; [P(A)P(B) = ${fmt(prod / 100)}]`,
           placeholder: 'yes / no',
+          hint: {
+            latex: 'P(A \\cap B) \\stackrel{?}{=} P(A)\\,P(B)',
+            text: 'Multiply P(A)P(B). If it matches the given joint probability exactly, independent; otherwise not.',
+          },
         }
       },
     },
@@ -61,6 +85,11 @@ export default {
           answerLatex: `1 - ${fmt(1 - p / 100)}^{${n}} = ${fmt(ans)}`,
           placeholder: 'e.g. 0.36',
           tolerance: 0.005,
+          hint: {
+            latex: 'P(\\text{at least one}) = 1 - (1-p)^n',
+            text: 'P(none) = (1-p) multiplied n times. Then flip it: 1 minus that.',
+          },
+          distractors: [Math.pow(1 - p / 100, n), Math.min(0.99, (n * p) / 100), 1 - ans],
         }
       },
     },

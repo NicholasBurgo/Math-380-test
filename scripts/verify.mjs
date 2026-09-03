@@ -9,10 +9,21 @@
 //
 // Run: npm run verify
 
+import katex from 'katex'
 import cls from '../src/classes/math3800/index.js'
+import { buildChoices } from '../src/engine/choices.js'
 
 const failures = []
 const results = []
+
+function katexOk(latex) {
+  try {
+    katex.renderToString(String(latex), { throwOnError: true })
+    return true
+  } catch {
+    return false
+  }
+}
 
 function pcts(s) {
   return [...s.matchAll(/(\d+(?:\.\d+)?)%/g)].map(m => parseFloat(m[1]) / 100)
@@ -291,8 +302,44 @@ for (const topic of cls.units.flatMap(u => u.topics)) {
             failures.push(`${key}: answerLatex shows ${shown} but answer is ${p.answer}`)
         }
       }
+      // every template must teach on a miss
+      if (!p.hint || !p.hint.text) {
+        bad++
+        if (bad <= 3) failures.push(`${key}: missing hint`)
+      } else if (p.hint.latex && !katexOk(p.hint.latex)) {
+        bad++
+        if (bad <= 3) failures.push(`${key}: hint latex does not parse`)
+      }
+      if (!katexOk(p.latex) || (p.answerLatex && !katexOk(p.answerLatex))) {
+        bad++
+        if (bad <= 3) failures.push(`${key}: problem/answer latex does not parse`)
+      }
+      // multiple-choice options: right count, unique labels, exactly one correct
+      const ch = buildChoices(p)
+      const wantCount = typeof p.answer === 'string' ? 2 : 4
+      const labels = new Set(ch.map(c => c.label))
+      if (
+        ch.length !== wantCount ||
+        labels.size !== wantCount ||
+        ch.filter(c => c.correct).length !== 1
+      ) {
+        bad++
+        if (bad <= 3)
+          failures.push(`${key}: bad choice set ${JSON.stringify(ch.map(c => c.label))}`)
+      }
     }
     results.push({ key, samples: n, mismatches: bad })
+  }
+}
+
+// learn blocks: every topic teaches, and its formulas parse
+for (const topic of cls.units.flatMap(u => u.topics)) {
+  if (!topic.learn?.formulas?.length || !topic.learn?.how?.length) {
+    failures.push(`${topic.id}: missing learn block (formulas + how)`)
+    continue
+  }
+  for (const f of topic.learn.formulas) {
+    if (!f.label || !katexOk(f.latex)) failures.push(`${topic.id}: bad learn formula "${f.label}"`)
   }
 }
 

@@ -5,6 +5,21 @@ export default {
   id: 'bayes',
   name: "Bayes' theorem",
   description: '§2.4: reversing conditional probabilities.',
+  learn: {
+    formulas: [
+      {
+        label: "Bayes' theorem (two causes)",
+        latex:
+          "P(A \\mid B) = \\dfrac{P(B \\mid A)\\,P(A)}{P(B \\mid A)\\,P(A) + P(B \\mid A')\\,P(A')}",
+      },
+    ],
+    how: [
+      'You are flipping the bar: you know P(B|A) but want P(A|B).',
+      'Top: the path through A. Likelihood times prior: P(B|A) P(A).',
+      "Bottom: every path to B. Through A plus through not-A: P(B|A)P(A) + P(B|A')P(A').",
+      'Divide top by bottom. The answer is always between 0 and 1.',
+    ],
+  },
   templates: [
     {
       id: 'two-event',
@@ -27,6 +42,11 @@ export default {
           answerLatex: `\\frac{${fmt(num)}}{${fmt(den)}} \\approx ${fmt(ans, 3)}`,
           placeholder: 'e.g. 0.824',
           tolerance: 0.005,
+          hint: {
+            latex: "P(A \\mid B) = \\dfrac{P(B \\mid A)\\,P(A)}{P(B \\mid A)P(A) + P(B \\mid A')P(A')}",
+            text: 'Top: the evidence coming through A. Bottom: all the ways the evidence happens. Divide.',
+          },
+          distractors: [hit / 100, num, den],
         }
       },
     },

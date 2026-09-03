@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { classes } from '../classes/index.js'
 import { getSkill, heatOf, reviewDue, getPages } from '../engine/stats.js'
 
-export default function Home({ onDrill }) {
+export default function Home({ onDrill, onLearn }) {
   return (
     <div className="sheet">
       <header className="home-head">
@@ -11,7 +11,7 @@ export default function Home({ onDrill }) {
       </header>
 
       {classes.map(cls => (
-        <ClassBlock key={cls.id} cls={cls} onDrill={onDrill} />
+        <ClassBlock key={cls.id} cls={cls} onDrill={onDrill} onLearn={onLearn} />
       ))}
 
       <footer className="site-foot">
@@ -27,7 +27,7 @@ export default function Home({ onDrill }) {
   )
 }
 
-function ClassBlock({ cls, onDrill }) {
+function ClassBlock({ cls, onDrill, onLearn }) {
   const pages = getPages(cls.id).slice(0, 5)
 
   return (
@@ -40,7 +40,7 @@ function ClassBlock({ cls, onDrill }) {
       </div>
 
       {cls.units.map(unit => (
-        <UnitBlock key={unit.id} cls={cls} unit={unit} onDrill={onDrill} />
+        <UnitBlock key={unit.id} cls={cls} unit={unit} onDrill={onDrill} onLearn={onLearn} />
       ))}
 
       {pages.length > 0 && (
@@ -65,7 +65,7 @@ function ClassBlock({ cls, onDrill }) {
   )
 }
 
-function UnitBlock({ cls, unit, onDrill }) {
+function UnitBlock({ cls, unit, onDrill, onLearn }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -99,6 +99,9 @@ function UnitBlock({ cls, unit, onDrill }) {
                 <span className="topic-stats">
                   {s ? `${s.attempts} reps · ${acc}% · best ${s.bestStreak}` : 'no reps yet'}
                 </span>
+                <button className="btn ghost" onClick={() => onLearn(cls, t)}>
+                  Learn
+                </button>
                 <button className="btn ghost" onClick={() => onDrill(cls, t, unit)}>
                   Drill
                 </button>

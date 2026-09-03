@@ -11,7 +11,10 @@ npm run dev
 
 ## How it works
 
-- **Drill loop**: keyboard only: type the answer, Enter checks, Enter again advances.
+- **Drill loop**: type the answer, Enter checks, Enter again advances. Or switch to **Choices** mode: four options built from common mistakes (keys 1-4 answer).
+- **Scratch pad**: toggle ✎ Scratch for a finger/mouse drawing area under the problem; it clears itself each rep.
+- **Hints on a miss**: every wrong answer shows the governing formula and a one-line how-to.
+- **Learn mode**: every topic has a Learn page: formulas, how to attack it, and worked examples with fresh numbers.
 - **Miss recycling**: a missed problem returns 2 reps later; it retires only after 2 clean hits in a row.
 - **Sets**: you drill in sets of 20 reps; each set ends with a summary page (accuracy, best streak, the problems that cost you the most). Summaries are saved as dated "pages" you can see on the class screen.
 - **Mastery heat**: every topic has a temperature (cold / warm / hot / mastered) driven by your current streak on it. Each unit's **Mixed set** feeds you more of whatever is cold.
@@ -30,14 +33,16 @@ src/
 
 - A **class** = `{ id, name, term, units: [...] }`
 - A **unit** = one test's material = `{ id, name, detail?, topics: [...] }`: each unit gets its own Mixed set button
-- A **topic** = one skill = `{ id, name, description, templates: [...] }`
+- A **topic** = one skill = `{ id, name, description, learn, templates: [...] }`
+  - `learn` = `{ formulas: [{ label, latex }], how: [lines] }` powers the Learn page
 - A **template** = one problem generator:
-  `generate() -> { latex, answer, answerLatex?, ask?, placeholder? }`
+  `generate() -> { latex, answer, answerLatex?, ask?, text?, placeholder?, tolerance?, size?, hint?, distractors? }`
   - `latex`: the problem, rendered with KaTeX
-  - `answer`: a number (fraction input like `7/6` is accepted automatically)
+  - `answer`: a number (fraction input like `7/6` is accepted automatically) or `'yes'`/`'no'`
   - `answerLatex`: how to display the answer when missed
-  - `ask`: small instruction line above the problem
-  - `placeholder`: input hint
+  - `ask` / `text`: instruction line and word-problem body above the math
+  - `hint`: `{ latex, text }` shown on a miss (required; the audit enforces it)
+  - `distractors`: wrong options for Choices mode, built from common mistakes (generic perturbations fill any gaps)
 
 ## Adding a class
 

@@ -16,6 +16,21 @@ export default {
   id: 'events',
   name: 'Sample spaces & events',
   description: '§1.2: unions, intersections, complements, mutual exclusivity.',
+  learn: {
+    formulas: [
+      { label: 'Union: in A or B (or both)', latex: 'A \\cup B' },
+      { label: 'Intersection: in both', latex: 'A \\cap B' },
+      { label: 'Complement: not in A', latex: "A' = S \\setminus A" },
+      { label: 'Mutually exclusive', latex: 'A \\cap B = \\varnothing' },
+    ],
+    how: [
+      'Union: collect everything in either set, counting shared outcomes once.',
+      'Intersection: keep only the outcomes the sets share.',
+      "Prime means NOT: A' is everything in S outside A.",
+      "Work inside-out: resolve primes first, then apply the union or intersection.",
+      'Mutually exclusive: zero shared outcomes, so both cannot happen at once.',
+    ],
+  },
   templates: [
     {
       id: 'set-count',
@@ -38,6 +53,11 @@ export default {
           text: `S = ${setStr(U)}, A = ${setStr(A)}, B = ${setStr(B)}.`,
           latex: op.latex,
           answer: op.val,
+          hint: {
+            latex: "A \\cup B, \\quad A \\cap B, \\quad A'",
+            text: 'Resolve primes first (everything in S outside the set), then union = either, intersection = both. Count.',
+          },
+          distractors: [6 - op.val, op.val + 1, op.val - 1],
         }
       },
     },
@@ -58,6 +78,10 @@ export default {
           answer: yes ? 'yes' : 'no',
           answerLatex: `\\text{${yes ? 'yes' : 'no'}}`,
           placeholder: 'yes / no',
+          hint: {
+            latex: 'A \\cap B = \\varnothing',
+            text: 'Scan for any shared outcome. One overlap means they can happen together, so not mutually exclusive.',
+          },
         }
       },
     },
