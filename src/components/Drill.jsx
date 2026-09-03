@@ -243,11 +243,24 @@ export default function Drill({ cls, topic, unit, onExit }) {
       </header>
 
       <div className="drill-tools">
-        <div className="mode-toggle" role="group" aria-label="answer mode">
-          <button className={mode === 'typed' ? 'on' : ''} onClick={() => setMode('typed')}>
+        <div
+          className="mode-toggle"
+          role="group"
+          aria-label="answer mode"
+          title={set.reps > 0 ? 'Answer mode is locked until the set ends' : undefined}
+        >
+          <button
+            className={mode === 'typed' ? 'on' : ''}
+            disabled={set.reps > 0 || feedback !== null}
+            onClick={() => setMode('typed')}
+          >
             Typed
           </button>
-          <button className={mode === 'choices' ? 'on' : ''} onClick={() => setMode('choices')}>
+          <button
+            className={mode === 'choices' ? 'on' : ''}
+            disabled={set.reps > 0 || feedback !== null}
+            onClick={() => setMode('choices')}
+          >
             Choices
           </button>
         </div>

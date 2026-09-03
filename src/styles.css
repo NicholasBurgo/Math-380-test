@@ -501,6 +501,14 @@ input:focus-visible {
   color: var(--paper);
 }
 
+.mode-toggle button:disabled {
+  cursor: not-allowed;
+}
+
+.mode-toggle button:disabled:not(.on) {
+  opacity: 0.45;
+}
+
 .tool-btn {
   font-size: 0.78rem;
   font-weight: 600;
