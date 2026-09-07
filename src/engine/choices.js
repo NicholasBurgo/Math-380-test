@@ -1,6 +1,8 @@
 import { shuffle } from './rand.js'
 
-const label = v => String(parseFloat(v.toFixed(4)))
+// 4 decimals for ordinary values; 4 significant figures below 1 so tiny
+// probabilities like 0.000025 do not collapse to "0".
+const label = v => String(parseFloat(Math.abs(v) < 1 ? v.toPrecision(4) : v.toFixed(4)))
 
 function genericDistractors(p) {
   const a = p.answer

@@ -1,5 +1,5 @@
 import { randInt, choice } from '../../engine/rand.js'
-import { fmt, fracLatex, pct, probs } from './util.js'
+import { fmt, fracLatex, pct, probs, tolFor } from './util.js'
 
 // Section 2.2 textbook exercises (17, 42): conditional probability on the
 // book's setups with fresh numbers. About one rep in four uses the book's
@@ -7,13 +7,9 @@ import { fmt, fracLatex, pct, probs } from './util.js'
 
 const BOOK = () => Math.random() < 0.25
 const COND = 'P(B \\mid A) = \\dfrac{P(A \\cap B)}{P(A)}'
-// small answers need a tighter tolerance than the usual 0.005
-const tolFor = v => (v < 0.05 ? 0.0005 : 0.005)
 
+// Part of the combined 'Chapter 2 exercises' topic (see hw-ch2.js).
 export default {
-  id: 'hw-2-2',
-  name: 'Exercises 2.2',
-  description: 'Textbook §2.2 problems 17 and 42 with fresh numbers.',
   learn: {
     formulas: [
       { label: 'Conditional probability', latex: COND },

@@ -51,3 +51,7 @@ export const pct = v => v / 100
 
 // Keep only usable probability distractors.
 export const probs = (...vals) => vals.filter(v => v > 0 && v < 1)
+
+// Answer tolerance: 0.005 absolute for ordinary probabilities, 5% relative
+// for small ones so 0.01 is not accepted for 0.0125.
+export const tolFor = v => Math.max(1e-6, Math.min(0.005, Math.abs(v) * 0.05))

@@ -176,7 +176,7 @@ const derive = {
     const [each, both] = decimals(p.text)
     return each + each - both
   },
-  'hw-2-1/ex2'(p) {
+  'hw-ch2/ex2'(p) {
     // "tin 1/35, platinum 1/35, ..." -> counts per metal over a shared denominator
     const pairs = [...p.text.matchAll(/([a-z]+) (\d+)\/(\d+)/g)]
     const N = +pairs[0][3]
@@ -197,7 +197,7 @@ const derive = {
     const names = ask.split(/,\s*(?:or\s+)?|\s+or\s+/).filter(Boolean)
     return names.reduce((s, n) => s + lookup(n), 0) / N
   },
-  'hw-2-1/ex7'(p) {
+  'hw-ch2/ex7'(p) {
     const [hot, bo, both] = pcts(p.text)
     if (both > Math.min(hot, bo) + 1e-9 || hot + bo - both > 1 + 1e-9)
       throw new Error('inconsistent blackout numbers')
@@ -207,7 +207,7 @@ const derive = {
     if (p.latex.includes('hot or blackout')) return hot + bo - both
     throw new Error(`unrecognized ask: ${p.latex}`)
   },
-  'hw-2-1/ex6'(p) {
+  'hw-ch2/ex6'(p) {
     const [over, soft, un] = pcts(p.text)
     const both = over + soft - un
     if (both < -1e-9 || both > Math.min(over, soft) + 1e-9 || un > 1 + 1e-9)
@@ -218,7 +218,7 @@ const derive = {
     if (p.latex.includes('overload and software')) return both
     throw new Error(`unrecognized ask: ${p.latex}`)
   },
-  'hw-2-1/ex8'(p) {
+  'hw-ch2/ex8'(p) {
     const [st, det, detOnly] = pcts(p.text)
     const both = det - detOnly
     if (both <= 0 || both >= st - 1e-9 || st + detOnly > 1 + 1e-9)
@@ -229,14 +229,14 @@ const derive = {
     if (p.latex.includes('static or deterioration')) return st + detOnly
     throw new Error(`unrecognized ask: ${p.latex}`)
   },
-  'hw-2-1/ex12c'(p) {
+  'hw-ch2/ex12c'(p) {
     const d = decimals(p.text)
     if (p.latex.includes('Could')) return decimals(p.latex)[0] >= d[0] ? 'yes' : 'no'
     if (p.latex.includes("A' \\cap B")) return d[1] - d[0] // ring = P(B) - P(A)
     if (p.latex.startsWith('P(B)')) return d[0] + d[1] // P(A) + ring
     throw new Error(`unrecognized ask: ${p.latex}`)
   },
-  'hw-2-2/ex17'(p) {
+  'hw-ch2/ex17'(p) {
     const [tr, line, both] = pcts(p.text)
     if (both >= tr || tr + line - both > 1 + 1e-9) throw new Error('inconsistent power-failure numbers')
     const L = p.latex
@@ -247,7 +247,7 @@ const derive = {
     if (L.includes('transformer or line')) return tr + line - both
     throw new Error(`unrecognized ask: ${L}`)
   },
-  'hw-2-2/ex42'(p) {
+  'hw-ch2/ex42'(p) {
     const [eqAlone, both, op] = pcts(p.text)
     if (both >= op || eqAlone + op > 1 + 1e-9) throw new Error('inconsistent shutdown numbers')
     const L = p.latex
@@ -257,6 +257,47 @@ const derive = {
     if (L.includes('\\mid \\text{equipment')) return both / (eqAlone + both)
     if (L.includes('equipment or operator')) return eqAlone + op
     throw new Error(`unrecognized ask: ${L}`)
+  },
+  'hw-ch2/ex19'(p) {
+    const [a, b, un] = decimals(p.text)
+    const both = a + b - un
+    if (both < -1e-9 || both > Math.min(a, b) + 1e-9) throw new Error('inconsistent exercise 19 numbers')
+    if (p.latex.includes('Independent iff')) return a * b
+    if (p.latex.includes('independent?')) return Math.abs(both - a * b) < 1e-9 ? 'yes' : 'no'
+    if (p.latex.includes('\\cap')) return both
+    throw new Error(`unrecognized ask: ${p.latex}`)
+  },
+  'hw-ch2/ex30'(p) {
+    const [dmg, storm, hit] = pcts(p.text)
+    if (p.latex.includes('given summer day')) return storm * hit * dmg
+    if (p.latex.includes('next storm')) return hit * dmg
+    throw new Error(`unrecognized ask: ${p.latex}`)
+  },
+  'hw-ch2/ex23'(p) {
+    const [cu, mint, cond] = pcts(p.text)
+    const joint = cu * cond
+    if (joint > mint + 1e-9) throw new Error('joint exceeds P(mint)')
+    if (p.latex.includes('independent?')) return Math.abs(mint - cond) < 1e-9 ? 'yes' : 'no'
+    if (p.latex.includes('\\mid')) return joint / mint
+    if (p.latex.includes('copper and mint')) return joint
+    throw new Error(`unrecognized ask: ${p.latex}`)
+  },
+  'hw-ch2/ex32'(p) {
+    const [a, b] = decimals(p.text)
+    if (a <= 0 || b <= 0 || a + b > 1 + 1e-9) throw new Error('inconsistent exercise 32 numbers')
+    if (p.latex.includes('\\cup')) return a + b
+    if (p.latex.includes('independent?')) return 'no'
+    if (p.latex.includes('P(A_1)\\,P(A_2)')) return a * b
+    if (p.latex.includes('\\cap')) return 0
+    throw new Error(`unrecognized ask: ${p.latex}`)
+  },
+  'hw-ch2/ex33'(p) {
+    const [a, b] = decimals(p.text)
+    if (a <= 0 || b <= 0) throw new Error('inconsistent exercise 33 numbers')
+    if (p.latex.includes('\\cup')) return a + b - a * b
+    if (p.latex.includes('mutually exclusive?')) return 'no'
+    if (p.latex.includes('\\cap')) return a * b
+    throw new Error(`unrecognized ask: ${p.latex}`)
   },
   'conditional/formula'(p) {
     const [pa, both] = pcts(p.text)
