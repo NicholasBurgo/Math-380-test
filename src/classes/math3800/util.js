@@ -38,3 +38,16 @@ export function pdfTable(xs, ps, hideIdx = -1) {
   const cols = 'c'.repeat(xs.length)
   return `\\begin{array}{c|${cols}} x & ${row1} \\\\ \\hline f(x) & ${row2} \\end{array}`
 }
+
+// \frac{k}{n}, its reduced form when different, and a decimal approximation.
+export function fracLatex(k, n) {
+  const g = gcd(k, n)
+  const reduced = g > 1 ? ` = \\frac{${k / g}}{${n / g}}` : ''
+  return `\\frac{${k}}{${n}}${reduced} \\approx ${fmt(k / n, 4)}`
+}
+
+// Percent -> probability.
+export const pct = v => v / 100
+
+// Keep only usable probability distractors.
+export const probs = (...vals) => vals.filter(v => v > 0 && v < 1)

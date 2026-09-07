@@ -176,6 +176,88 @@ const derive = {
     const [each, both] = decimals(p.text)
     return each + each - both
   },
+  'hw-2-1/ex2'(p) {
+    // "tin 1/35, platinum 1/35, ..." -> counts per metal over a shared denominator
+    const pairs = [...p.text.matchAll(/([a-z]+) (\d+)\/(\d+)/g)]
+    const N = +pairs[0][3]
+    const k = {}
+    let sum = 0
+    for (const [, name, num, den] of pairs) {
+      if (+den !== N) throw new Error('mixed denominators')
+      k[name] = +num
+      sum += +num
+    }
+    if (sum !== N) throw new Error(`metal counts sum to ${sum}, not ${N}`)
+    const ask = p.latex.match(/\\text\{([^}]*)\}/)[1]
+    const lookup = name => {
+      if (!(name in k)) throw new Error(`unknown metal "${name}"`)
+      return k[name]
+    }
+    if (ask.startsWith('not ')) return 1 - lookup(ask.slice(4)) / N
+    const names = ask.split(/,\s*(?:or\s+)?|\s+or\s+/).filter(Boolean)
+    return names.reduce((s, n) => s + lookup(n), 0) / N
+  },
+  'hw-2-1/ex7'(p) {
+    const [hot, bo, both] = pcts(p.text)
+    if (both > Math.min(hot, bo) + 1e-9 || hot + bo - both > 1 + 1e-9)
+      throw new Error('inconsistent blackout numbers')
+    if (p.latex.includes('hot but no blackout')) return hot - both
+    if (p.latex.includes('blackout but not hot')) return bo - both
+    if (p.latex.includes('neither')) return 1 - (hot + bo - both)
+    if (p.latex.includes('hot or blackout')) return hot + bo - both
+    throw new Error(`unrecognized ask: ${p.latex}`)
+  },
+  'hw-2-1/ex6'(p) {
+    const [over, soft, un] = pcts(p.text)
+    const both = over + soft - un
+    if (both < -1e-9 || both > Math.min(over, soft) + 1e-9 || un > 1 + 1e-9)
+      throw new Error('inconsistent computer numbers')
+    if (p.latex.includes('software but no overload')) return soft - both
+    if (p.latex.includes('overload but no software')) return over - both
+    if (p.latex.includes('neither')) return 1 - un
+    if (p.latex.includes('overload and software')) return both
+    throw new Error(`unrecognized ask: ${p.latex}`)
+  },
+  'hw-2-1/ex8'(p) {
+    const [st, det, detOnly] = pcts(p.text)
+    const both = det - detOnly
+    if (both <= 0 || both >= st - 1e-9 || st + detOnly > 1 + 1e-9)
+      throw new Error('inconsistent phone numbers')
+    if (p.latex.includes('static and deterioration')) return both
+    if (p.latex.includes('only static')) return st - both
+    if (p.latex.includes('neither')) return 1 - (st + detOnly)
+    if (p.latex.includes('static or deterioration')) return st + detOnly
+    throw new Error(`unrecognized ask: ${p.latex}`)
+  },
+  'hw-2-1/ex12c'(p) {
+    const d = decimals(p.text)
+    if (p.latex.includes('Could')) return decimals(p.latex)[0] >= d[0] ? 'yes' : 'no'
+    if (p.latex.includes("A' \\cap B")) return d[1] - d[0] // ring = P(B) - P(A)
+    if (p.latex.startsWith('P(B)')) return d[0] + d[1] // P(A) + ring
+    throw new Error(`unrecognized ask: ${p.latex}`)
+  },
+  'hw-2-2/ex17'(p) {
+    const [tr, line, both] = pcts(p.text)
+    if (both >= tr || tr + line - both > 1 + 1e-9) throw new Error('inconsistent power-failure numbers')
+    const L = p.latex
+    if (L.includes('transformer but no line')) return tr - both
+    if (L.includes('\\mid \\text{no line')) return (tr - both) / (1 - line)
+    if (L.includes('line} \\mid \\text{transformer')) return both / tr
+    if (L.includes('transformer} \\mid \\text{line')) return both / line
+    if (L.includes('transformer or line')) return tr + line - both
+    throw new Error(`unrecognized ask: ${L}`)
+  },
+  'hw-2-2/ex42'(p) {
+    const [eqAlone, both, op] = pcts(p.text)
+    if (both >= op || eqAlone + op > 1 + 1e-9) throw new Error('inconsistent shutdown numbers')
+    const L = p.latex
+    if (L.includes('operator alone')) return op - both
+    if (L.includes('neither')) return 1 - (eqAlone + op)
+    if (L.includes('\\mid \\text{no equipment')) return (op - both) / (1 - eqAlone - both)
+    if (L.includes('\\mid \\text{equipment')) return both / (eqAlone + both)
+    if (L.includes('equipment or operator')) return eqAlone + op
+    throw new Error(`unrecognized ask: ${L}`)
+  },
   'conditional/formula'(p) {
     const [pa, both] = pcts(p.text)
     if (both >= pa) throw new Error('P(both) >= P(A)')
