@@ -299,6 +299,39 @@ const derive = {
     if (p.latex.includes('\\cap')) return a * b
     throw new Error(`unrecognized ask: ${p.latex}`)
   },
+  'hw-ch2/ex35'(p) {
+    const [prev, sens, fp] = pcts(p.text)
+    const tp = prev * sens
+    const fpos = (1 - prev) * fp
+    if (p.latex.includes('negative test'))
+      return (prev * (1 - sens)) / (prev * (1 - sens) + (1 - prev) * (1 - fp))
+    if (p.latex.includes('\\mid')) return tp / (tp + fpos)
+    return tp + fpos
+  },
+  'hw-ch2/ex36'(p) {
+    const [prodDef, legalDef, stolen] = pcts(p.text)
+    const s = stolen * prodDef
+    const l = (1 - stolen) * legalDef
+    if (p.latex.includes('\\mid')) return s / (s + l)
+    return s + l
+  },
+  'hw-ch2/ex34'(p) {
+    const [pa, pb, pab, po, ta, tb, tab, to] = pcts(p.text)
+    if (Math.abs(pa + pb + pab + po - 1) > 1e-9) throw new Error('blood types do not sum to 1')
+    const typedA = pa * ta + pb * tb + pab * tab + po * to
+    if (p.latex.includes('actually B')) return (pb * tb) / typedA
+    if (p.latex.includes('actually A')) return (pa * ta) / typedA
+    return typedA
+  },
+  'hw-ch2/ex41'(p) {
+    const [a, b, c, ja, jb, jc] = decimals(p.text)
+    if (Math.abs(a + b + c - 1) > 1e-9) throw new Error('printer shares do not sum to 1')
+    const jam = a * ja + b * jb + c * jc
+    if (p.latex.includes('printer A')) return (a * ja) / jam
+    if (p.latex.includes('printer B')) return (b * jb) / jam
+    if (p.latex.includes('printer C')) return (c * jc) / jam
+    return jam
+  },
   'conditional/formula'(p) {
     const [pa, both] = pcts(p.text)
     if (both >= pa) throw new Error('P(both) >= P(A)')
