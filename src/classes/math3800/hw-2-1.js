@@ -99,7 +99,7 @@ export default {
           latex: q.latex,
           answer: q.k / N,
           answerLatex: fracLatex(q.k, N),
-          placeholder: `e.g. 10/${N} or 0.29`,
+          placeholder: 'fraction or decimal',
           tolerance: 0.006,
           hint: {
             latex: "P(A \\cup B \\cup C) = P(A) + P(B) + P(C), \\quad P(A') = 1 - P(A)",
@@ -138,7 +138,7 @@ export default {
           latex: q.latex,
           answer: pct(q.v),
           answerLatex: fmt(pct(q.v)),
-          placeholder: 'e.g. 0.40',
+          placeholder: 'decimal',
           tolerance: 0.005,
           hint: {
             latex: "P(A \\cap B') = P(A) - P(A \\cap B), \\quad P(A' \\cap B') = 1 - P(A \\cup B)",
@@ -177,7 +177,7 @@ export default {
           latex: q.latex,
           answer: pct(q.v),
           answerLatex: fmt(pct(q.v)),
-          placeholder: 'e.g. 0.05',
+          placeholder: 'decimal',
           tolerance: 0.005,
           hint: {
             latex: 'P(A \\cap B) = P(A) + P(B) - P(A \\cup B)',
@@ -215,7 +215,7 @@ export default {
           latex: q.latex,
           answer: pct(q.v),
           answerLatex: fmt(pct(q.v)),
-          placeholder: 'e.g. 0.15',
+          placeholder: 'decimal',
           tolerance: 0.005,
           hint: {
             latex: "P(A \\cap B) = P(B) - P(A' \\cap B), \\quad P(A' \\cap B') = 1 - P(A \\cup B)",
@@ -238,7 +238,7 @@ export default {
             latex: "P(A' \\cap B) = \\,?",
             answer: pct(pb - pa),
             answerLatex: fmt(pct(pb - pa)),
-            placeholder: 'e.g. 0.25',
+            placeholder: 'decimal',
             tolerance: 0.005,
             hint: HINT_12C,
             distractors: probs(pa / pb, pct(pa) * pct(pb), 1 - pct(pb), pct(pa)),
@@ -252,7 +252,7 @@ export default {
             latex: 'P(B) = \\,?',
             answer: pct(pa + ring),
             answerLatex: fmt(pct(pa + ring)),
-            placeholder: 'e.g. 0.5',
+            placeholder: 'decimal',
             tolerance: 0.005,
             hint: HINT_12C,
             distractors: probs(pct(pa - ring), pct(pa) * pct(ring), 1 - pct(pa + ring), pct(pa)),

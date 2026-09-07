@@ -76,7 +76,7 @@ export default {
           latex: q.latex,
           answer: ans,
           answerLatex: q.den === 100 ? fmt(ans) : fracLatex(q.num, q.den),
-          placeholder: ans < 0.05 ? 'e.g. 1/80 or 0.0125' : 'e.g. 0.2 or 1/5',
+          placeholder: 'fraction or decimal',
           tolerance: tolFor(ans),
           hint: {
             latex: COND,
@@ -137,7 +137,7 @@ export default {
           latex: q.latex,
           answer: ans,
           answerLatex: q.den === 100 ? fmt(ans) : fracLatex(q.num, q.den),
-          placeholder: 'e.g. 0.35 or 1/3',
+          placeholder: 'fraction or decimal',
           tolerance: tolFor(ans),
           hint: {
             latex: 'P(E) = P(E \\text{ alone}) + P(E \\cap O), \\quad P(O \\mid E) = \\dfrac{P(E \\cap O)}{P(E)}',
