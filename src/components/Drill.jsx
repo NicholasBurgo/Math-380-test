@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MathText from './MathText.jsx'
-import ScratchPad from './ScratchPad.jsx'
+import ScratchOverlay from './ScratchOverlay.jsx'
 import { createSession } from '../engine/drill.js'
 import { checkAnswer } from '../engine/check.js'
 import { buildChoices } from '../engine/choices.js'
@@ -45,7 +45,8 @@ export default function Drill({ cls, topic, unit, onExit }) {
   const [feedback, setFeedback] = useState(null) // null | 'correct' | 'wrong'
   const [picked, setPicked] = useState(null)
   const [mode, setModeState] = useState(() => loadPref('mathreps.answerMode', 'typed'))
-  const [scratch, setScratchState] = useState(() => loadPref('mathreps.scratch', '0') === '1')
+  const [scratch, setScratchState] = useState(() => loadPref('mathreps.scratch', '1') === '1')
+  const [scratchClears, setScratchClears] = useState(0)
   const [set, setSet] = useState({ n: 1, reps: 0, correct: 0, streak: 0, best: 0, misses: {} })
   const [summary, setSummary] = useState(null)
   const inputRef = useRef(null)
@@ -267,6 +268,11 @@ export default function Drill({ cls, topic, unit, onExit }) {
         <button className={`tool-btn ${scratch ? 'on' : ''}`} onClick={toggleScratch}>
           ✎ Scratch
         </button>
+        {scratch && (
+          <button className="tool-btn" onClick={() => setScratchClears(c => c + 1)}>
+            Clear
+          </button>
+        )}
       </div>
 
       <main className="drill-main">
@@ -342,8 +348,9 @@ export default function Drill({ cls, topic, unit, onExit }) {
           )}
         </div>
 
-        {scratch && <ScratchPad clearKey={current} />}
       </main>
+
+      {scratch && <ScratchOverlay repKey={current} clearSignal={scratchClears} />}
 
       <footer className="drill-foot">
         <span>streak {set.streak}</span>
