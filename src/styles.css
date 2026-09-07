@@ -474,6 +474,7 @@ input:focus-visible {
 
 .drill-tools {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
   gap: 10px;
@@ -865,6 +866,15 @@ input:focus-visible {
 }
 
 /* ---------- small screens ---------- */
+
+/* touch devices: problem at the top, the rest of the page is writing room */
+@media (pointer: coarse) {
+  .drill-main {
+    justify-content: flex-start;
+    padding-top: 10px;
+    gap: 14px;
+  }
+}
 
 @media (max-width: 640px) {
   .sheet {
