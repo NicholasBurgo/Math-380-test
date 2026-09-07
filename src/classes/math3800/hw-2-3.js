@@ -6,7 +6,6 @@ import { fmt, pct, probs, tolFor } from './util.js'
 // own numbers so an answer can be checked against the homework.
 
 const BOOK = () => Math.random() < 0.25
-const INDEP = 'P(A_1 \\cap A_2) = P(A_1)\\,P(A_2)'
 const fmtSmall = x => String(parseFloat(x.toFixed(7)))
 const yesNo = yes => ({
   answer: yes ? 'yes' : 'no',
@@ -14,11 +13,10 @@ const yesNo = yes => ({
   placeholder: 'yes / no',
 })
 
-// Part of the combined 'Chapter 2 exercises' topic (see hw-ch2.js).
+// Textbook-exercise pack, folded into its section topic via withPack().
 export default {
   learn: {
     formulas: [
-      { label: 'Independent', latex: INDEP },
       { label: 'Equivalent test', latex: 'P(A_2 \\mid A_1) = P(A_2)' },
       {
         label: 'Overlap from the union',

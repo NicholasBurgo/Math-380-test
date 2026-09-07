@@ -55,3 +55,20 @@ export const probs = (...vals) => vals.filter(v => v > 0 && v < 1)
 // Answer tolerance: 0.005 absolute for ordinary probabilities, 5% relative
 // for small ones so 0.01 is not accepted for 0.0125.
 export const tolFor = v => Math.max(1e-6, Math.min(0.005, Math.abs(v) * 0.05))
+
+// Fold a textbook-exercise pack ({ learn, templates }) into a section topic.
+// Formulas with a label the topic already has are skipped.
+export function withPack(topic, pack) {
+  const seen = new Set(topic.learn.formulas.map(f => f.label))
+  return {
+    ...topic,
+    learn: {
+      formulas: [
+        ...topic.learn.formulas,
+        ...pack.learn.formulas.filter(f => !seen.has(f.label) && seen.add(f.label)),
+      ],
+      how: [...topic.learn.how, ...pack.learn.how],
+    },
+    templates: [...topic.templates, ...pack.templates],
+  }
+}

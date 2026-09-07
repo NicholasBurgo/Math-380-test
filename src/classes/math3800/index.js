@@ -1,7 +1,6 @@
 import counting from './counting.js'
 import events from './events.js'
 import probRules from './prob-rules.js'
-import hwCh2 from './hw-ch2.js'
 import conditional from './conditional.js'
 import independence from './independence.js'
 import bayes from './bayes.js'
@@ -23,7 +22,6 @@ export default {
         probRules,
         conditional,
         independence,
-        hwCh2,
         bayes,
         discretePdf,
         expectation,

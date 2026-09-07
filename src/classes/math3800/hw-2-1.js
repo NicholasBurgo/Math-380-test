@@ -53,7 +53,7 @@ const HINT_12C = {
   text: 'Split B into the part inside A and the ring outside A. The two pieces are mutually exclusive, so axiom 3 adds them, and the ring is at least 0 by axiom 2. So P(B) can never be below P(A).',
 }
 
-// Part of the combined 'Chapter 2 exercises' topic (see hw-ch2.js).
+// Textbook-exercise pack, folded into its section topic via withPack().
 export default {
   learn: {
     formulas: [

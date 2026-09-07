@@ -8,7 +8,7 @@ import { fmt, fracLatex, pct, probs, tolFor } from './util.js'
 const BOOK = () => Math.random() < 0.25
 const COND = 'P(B \\mid A) = \\dfrac{P(A \\cap B)}{P(A)}'
 
-// Part of the combined 'Chapter 2 exercises' topic (see hw-ch2.js).
+// Textbook-exercise pack, folded into its section topic via withPack().
 export default {
   learn: {
     formulas: [

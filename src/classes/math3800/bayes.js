@@ -1,10 +1,11 @@
 import { choice } from '../../engine/rand.js'
-import { fmt } from './util.js'
+import { fmt, withPack } from './util.js'
+import pack from './hw-2-4.js'
 
-export default {
+export default withPack({
   id: 'bayes',
   name: "Bayes' theorem",
-  description: '§2.4: reversing conditional probabilities.',
+  description: '§2.4: reversing conditional probabilities. HW 35, 36, 34, 41.',
   learn: {
     formulas: [
       {
@@ -51,4 +52,4 @@ export default {
       },
     },
   ],
-}
+}, pack)

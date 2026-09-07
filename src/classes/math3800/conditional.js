@@ -1,10 +1,11 @@
 import { randInt, choice } from '../../engine/rand.js'
-import { fmt, gcd } from './util.js'
+import { fmt, gcd, withPack } from './util.js'
+import pack from './hw-2-2.js'
 
-export default {
+export default withPack({
   id: 'conditional',
   name: 'Conditional probability',
-  description: '§2.2: P(B|A) = P(A∩B)/P(A).',
+  description: '§2.2: P(B|A) = P(A∩B)/P(A). HW 17, 42.',
   learn: {
     formulas: [
       { label: 'Conditional probability', latex: 'P(B \\mid A) = \\dfrac{P(A \\cap B)}{P(A)}' },
@@ -71,4 +72,4 @@ export default {
       },
     },
   ],
-}
+}, pack)

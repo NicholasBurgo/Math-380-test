@@ -22,7 +22,7 @@ function totalLatex(terms) {
   return `${terms.map(t => fmt(t)).join(' + ')} = ${fmt(sum(terms))}`
 }
 
-// Part of the combined 'Chapter 2 exercises' topic (see hw-ch2.js).
+// Textbook-exercise pack, folded into its section topic via withPack().
 export default {
   learn: {
     formulas: [

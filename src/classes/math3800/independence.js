@@ -1,10 +1,11 @@
 import { randInt, choice } from '../../engine/rand.js'
-import { fmt } from './util.js'
+import { fmt, withPack } from './util.js'
+import pack from './hw-2-3.js'
 
-export default {
+export default withPack({
   id: 'independence',
   name: 'Independence',
-  description: '§2.3: multiplication rule for independent events.',
+  description: '§2.3: multiplication rule for independent events. HW 19, 30, 23, 32, 33.',
   learn: {
     formulas: [
       { label: 'Independence test', latex: 'P(A \\cap B) = P(A)\\,P(B)' },
@@ -94,4 +95,4 @@ export default {
       },
     },
   ],
-}
+}, pack)

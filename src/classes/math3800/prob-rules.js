@@ -1,12 +1,13 @@
 import { randInt, choice } from '../../engine/rand.js'
-import { fmt } from './util.js'
+import { fmt, withPack } from './util.js'
+import pack from './hw-2-1.js'
 
 const ADDITION = 'P(A \\cup B) = P(A) + P(B) - P(A \\cap B)'
 
-export default {
+export default withPack({
   id: 'prob-rules',
   name: 'Probability rules',
-  description: '§2.1: axioms, complement rule, addition rule.',
+  description: '§2.1: axioms, complement rule, addition rule. HW 2, 7, 6, 8, 12(c).',
   learn: {
     formulas: [
       { label: 'Probabilities sum to 1', latex: '\\textstyle\\sum P(A_i) = 1' },
@@ -129,4 +130,4 @@ export default {
       },
     },
   ],
-}
+}, pack)
