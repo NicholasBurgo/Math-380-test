@@ -47,6 +47,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
   const [mode, setModeState] = useState(() => loadPref('mathreps.answerMode', 'typed'))
   const [scratch, setScratchState] = useState(() => loadPref('mathreps.scratch', '1') === '1')
   const [scratchClears, setScratchClears] = useState(0)
+  const [erasePen, setErasePen] = useState(false)
   const [set, setSet] = useState({ n: 1, reps: 0, correct: 0, streak: 0, best: 0, misses: {} })
   const [summary, setSummary] = useState(null)
   const inputRef = useRef(null)
@@ -269,6 +270,15 @@ export default function Drill({ cls, topic, unit, onExit }) {
           ✎ Scratch
         </button>
         {scratch && (
+          <button
+            className={`tool-btn ${erasePen ? 'on' : ''}`}
+            onClick={() => setErasePen(v => !v)}
+            title="Erase with the pen (the pen barrel button also erases while held)"
+          >
+            Erase
+          </button>
+        )}
+        {scratch && (
           <button className="tool-btn" onClick={() => setScratchClears(c => c + 1)}>
             Clear
           </button>
@@ -350,7 +360,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
 
       </main>
 
-      {scratch && <ScratchOverlay repKey={current} clearSignal={scratchClears} />}
+      {scratch && <ScratchOverlay repKey={current} clearSignal={scratchClears} erase={erasePen} />}
 
       <footer className="drill-foot">
         <span>streak {set.streak}</span>

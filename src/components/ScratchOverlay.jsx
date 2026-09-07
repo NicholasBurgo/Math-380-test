@@ -3,10 +3,13 @@ import { useEffect, useRef } from 'react'
 // Full-page scratch layer. Pen (S Pen / Apple Pencil) and mouse draw anywhere;
 // fingers keep scrolling and tapping as usual, which doubles as palm rejection.
 // Interactive elements stay clickable for every pointer type.
-export default function ScratchOverlay({ repKey, clearSignal }) {
+export default function ScratchOverlay({ repKey, clearSignal, erase = false }) {
   const canvasRef = useRef(null)
   const drawing = useRef(false)
   const last = useRef(null)
+  const eraseStroke = useRef(false)
+  const eraseMode = useRef(erase)
+  eraseMode.current = erase
 
   useEffect(() => {
     reset(false)
@@ -32,6 +35,10 @@ export default function ScratchOverlay({ repKey, clearSignal }) {
     }
     c.width = window.innerWidth * dpr
     c.height = window.innerHeight * dpr
+    // CSS size must match the bitmap exactly; 100vh lies when the URL bar is
+    // visible and would scale strokes away from the pen tip
+    c.style.width = `${window.innerWidth}px`
+    c.style.height = `${window.innerHeight}px`
     const ctx = c.getContext('2d')
     ctx.scale(dpr, dpr)
     ctx.lineCap = 'round'
@@ -53,9 +60,17 @@ export default function ScratchOverlay({ repKey, clearSignal }) {
       return e.pointerType === 'pen' && e.pressure > 0 ? 0.5 + e.pressure * 3 : 2
     }
 
+    // barrel button = buttons bit 2 (or button 2), eraser tip = bit 32 (or button 5)
+    function barrelHeld(e) {
+      return (e.buttons & 34) !== 0 || e.button === 2 || e.button === 5
+    }
+
     function down(e) {
       if (!canDraw(e)) return
       drawing.current = true
+      // some browsers only report the barrel state reliably at pen-down, so
+      // latch it for the whole stroke
+      eraseStroke.current = barrelHeld(e)
       last.current = { x: e.clientX, y: e.clientY }
       e.preventDefault()
     }
@@ -65,10 +80,9 @@ export default function ScratchOverlay({ repKey, clearSignal }) {
       e.preventDefault()
       const ctx = canvasRef.current?.getContext('2d')
       if (!ctx || !last.current) return
-      // held pen barrel button (buttons bit 2) or an eraser tip (bit 32) erases
-      const erasing = (e.buttons & 2) !== 0 || (e.buttons & 32) !== 0
+      const erasing = eraseMode.current || eraseStroke.current || barrelHeld(e)
       ctx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over'
-      ctx.lineWidth = erasing ? 24 : widthFor(e)
+      ctx.lineWidth = erasing ? 26 : widthFor(e)
       ctx.beginPath()
       ctx.moveTo(last.current.x, last.current.y)
       ctx.lineTo(e.clientX, e.clientY)
@@ -78,6 +92,7 @@ export default function ScratchOverlay({ repKey, clearSignal }) {
 
     function up() {
       drawing.current = false
+      eraseStroke.current = false
       last.current = null
     }
 
