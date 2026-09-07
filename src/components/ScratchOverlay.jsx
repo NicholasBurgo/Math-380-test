@@ -88,17 +88,43 @@ export default function ScratchOverlay({ repKey, clearSignal }) {
       }
     }
 
+    // Browsers start a scroll gesture from touch-action, not from pointer-event
+    // preventDefault, and a stylus counts as touch for scrolling. Cancel the
+    // compat touch events for the pen so it inks instead of panning; fingers
+    // (drawing.current stays false for them) keep scrolling normally.
+    function onTouchStart(e) {
+      if (drawing.current) e.preventDefault()
+    }
+
+    function onTouchMove(e) {
+      if (drawing.current) {
+        e.preventDefault()
+        return
+      }
+      // iOS reports Apple Pencil touches as touchType 'stylus'
+      for (const t of e.touches) {
+        if (t.touchType === 'stylus') {
+          e.preventDefault()
+          return
+        }
+      }
+    }
+
     window.addEventListener('pointerdown', down, { passive: false })
     window.addEventListener('pointermove', move, { passive: false })
     window.addEventListener('pointerup', up)
     window.addEventListener('pointercancel', up)
     window.addEventListener('contextmenu', onContextMenu)
+    window.addEventListener('touchstart', onTouchStart, { passive: false })
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
     return () => {
       window.removeEventListener('pointerdown', down)
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       window.removeEventListener('pointercancel', up)
       window.removeEventListener('contextmenu', onContextMenu)
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove', onTouchMove)
     }
   }, [])
 
