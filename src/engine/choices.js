@@ -1,5 +1,7 @@
 import { shuffle } from './rand.js'
 
+const LETTERS = 'abcdefgh'
+
 // 4 decimals for ordinary values; 4 significant figures below 1 so tiny
 // probabilities like 0.000025 do not collapse to "0".
 const label = v => String(parseFloat(Math.abs(v) < 1 ? v.toPrecision(4) : v.toFixed(4)))
@@ -17,15 +19,32 @@ function genericDistractors(p) {
   return out
 }
 
+// Options for a word answer:
+//  - lettered `options` in the problem: one button per letter, in order
+//  - template `choices` (wrong words): the answer plus up to three of them
+//  - otherwise a true/false or yes/no pair
+function wordChoices(problem) {
+  if (problem.options) {
+    return problem.options.map((_, i) => ({
+      label: LETTERS[i],
+      correct: LETTERS[i] === problem.answer,
+    }))
+  }
+  if (problem.choices) {
+    const wrong = [...new Set(problem.choices.filter(c => c !== problem.answer))].slice(0, 3)
+    return shuffle([
+      { label: problem.answer, correct: true },
+      ...wrong.map(w => ({ label: w, correct: false })),
+    ])
+  }
+  const pair = problem.answer === 'true' || problem.answer === 'false' ? ['true', 'false'] : ['yes', 'no']
+  return shuffle(pair.map(l => ({ label: l, correct: l === problem.answer })))
+}
+
 // Four options for a problem: the answer plus three wrong ones. Template
 // distractors (common mistakes) go first; generic perturbations fill gaps.
 export function buildChoices(problem) {
-  if (typeof problem.answer === 'string') {
-    return shuffle([
-      { label: 'yes', correct: problem.answer === 'yes' },
-      { label: 'no', correct: problem.answer === 'no' },
-    ])
-  }
+  if (typeof problem.answer === 'string') return wordChoices(problem)
 
   const tol = Math.max(problem.tolerance ?? 1e-6, 1e-9)
   const usedLabels = new Set([label(problem.answer)])

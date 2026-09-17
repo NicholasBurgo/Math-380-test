@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import MathText from './MathText.jsx'
+import Options from './Options.jsx'
 
 function answerDisplay(p) {
   return p.answerLatex ?? String(p.answer)
@@ -78,6 +79,7 @@ export default function Learn({ cls, topic, onExit, onDrill }) {
               <div className={ex.size === 'small' ? 'problem problem-small' : 'problem'}>
                 <MathText latex={ex.latex} display />
               </div>
+              <Options options={ex.options} />
               {shown[i] ? (
                 <div className="example-solution">
                   <p className="solution-line">

@@ -23,12 +23,20 @@ export function parseAnswer(raw) {
   return percent && n !== null ? n / 100 : n
 }
 
+// Word answers: case, spaces, and wrapping punctuation do not matter, and the
+// usual one-letter shorthands are accepted ("t" for true, "b" or "(b)" for b).
+const ALIAS = { t: 'true', f: 'false', y: 'yes', n: 'no' }
+export function normWord(s) {
+  const t = String(s)
+    .trim()
+    .toLowerCase()
+    .replace(/[\s().]/g, '')
+  return ALIAS[t] ?? t
+}
+
 export function checkAnswer(raw, problem) {
   if (problem.accept) return problem.accept(raw)
-  if (typeof problem.answer === 'string') {
-    const norm = s => s.trim().toLowerCase().replace(/\s+/g, '')
-    return norm(raw) === norm(problem.answer)
-  }
+  if (typeof problem.answer === 'string') return normWord(raw) === normWord(problem.answer)
   const n = parseAnswer(raw)
   if (n === null) return false
   const tol = problem.tolerance ?? 1e-6

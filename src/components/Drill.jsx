@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MathText from './MathText.jsx'
 import ScratchOverlay from './ScratchOverlay.jsx'
+import Options from './Options.jsx'
 import { createSession } from '../engine/drill.js'
 import { checkAnswer } from '../engine/check.js'
 import { buildChoices } from '../engine/choices.js'
@@ -295,6 +296,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
         <div className={problem.size === 'small' ? 'problem problem-small' : 'problem'}>
           <MathText latex={problem.latex} display />
         </div>
+        <Options options={problem.options} />
 
         {mode === 'typed' ? (
           <form className="answer-form" onSubmit={handleSubmit}>
