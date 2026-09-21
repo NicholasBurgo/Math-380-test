@@ -156,7 +156,7 @@ export default {
       generate() {
         const kind = choice(['AB', 'AA', 'ABC'])
         if (kind === 'AA') {
-          const n = randInt(2, 7)
+          const n = randInt(2, 12)
           return {
             ask: 'Solve for the size.',
             text: `A is a set with |A × A| = ${n * n}.`,
@@ -167,9 +167,9 @@ export default {
           }
         }
         if (kind === 'ABC') {
-          const a = randInt(2, 4)
-          const b = randInt(2, 4)
-          const c = randInt(2, 5)
+          const a = randInt(2, 6)
+          const b = randInt(2, 6)
+          const c = randInt(2, 7)
           return {
             ask: 'Solve for the size.',
             text: `|A| = ${a}, |B| = ${b}, and |A × B × C| = ${a * b * c}.`,
@@ -179,8 +179,8 @@ export default {
             distractors: [a * b * c - a - b, a * b * c - a * b, (a * b * c) / a],
           }
         }
-        const a = randInt(2, 6)
-        const b = randInt(2, 6)
+        const a = randInt(2, 9)
+        const b = randInt(2, 9)
         return {
           ask: 'Solve for the size.',
           text: `|A| = ${a} and |A × B| = ${a * b}.`,

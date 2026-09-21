@@ -369,12 +369,27 @@ const STATEMENT_YES = new Set([
   "John Smith is Dr. Hudson's favorite student.", 'The integer 7 is prime.', '2 + 2 = 5.', 'Every square is a rectangle.',
   'Paris is the capital of France.', 'There are infinitely many twin primes.', '√2 is a rational number.', '0 is a natural number.',
   'Every even integer greater than 2 is the sum of two primes.', 'Some prime number is even.', 'The number 15 is a multiple of 4.',
+  'The sum of two even integers is even.', 'Every rectangle is a square.', 'Baton Rouge is the capital of Louisiana.', '3 is an even integer.',
+  'There is a largest prime number.', 'The decimal expansion of π contains one million consecutive 7s.', '1 + 1 = 2 and 2 + 2 = 5.',
+  'The empty set is a subset of every set.', 'For every real number x, x² ≥ 0.', 'There exists an integer n such that n² = 2.',
+  'Louisiana has 64 parishes.', 'The 100th digit of π is 7.',
 ])
 const STATEMENT_NO = new Set([
   'x > 2.', 'She received an A on her chemistry exam.', 'Is it raining?', 'Close the door.', 'n is a prime number.', 'x + 3 = 7.',
   'He is a math major.', 'What time is it?', 'Please pass the salt.', 'x² = 4.', 'They live in Hammond.', 'Study for the test!',
   'n and n + 2 are both prime.', 'Wow, what a game!',
+  'This sentence is false.', '3x − 2 is positive.', 'The number m is even.', 'Do your homework.', 'How many primes are there?', 'It is a rectangle.',
+  'Happy birthday!', 'May I borrow your pencil?', 'x is a rational number.', 'Let n be an integer.', '5x + 3.', 'A ⊆ B.',
 ])
+// number-filled sentences: only specific numbers -> statement; a free letter -> open sentence
+const NUMBER_SENTENCE = [
+  [/^The integer \d+ is (prime|even|odd|a perfect square)\.$/, 'yes'],
+  [/^The integer [a-z] is (prime|even|odd|a perfect square)\.$/, 'no'],
+  [/^\d+ \+ \d+ = \d+\.$/, 'yes'],
+  [/^[a-z] \+ \d+ = \d+\.$/, 'no'],
+  [/^\d+ is a multiple of \d+\.$/, 'yes'],
+  [/^[a-z] is a multiple of \d+\.$/, 'no'],
+]
 
 const NEGATIONS = {
   "Mary's car is not green.": "Mary's car is green.",
@@ -389,6 +404,25 @@ const NEGATIONS = {
   'Everyone in the class passed.': 'Someone in the class did not pass.',
   'No cat can fly.': 'Some cat can fly.',
   'The function f is continuous at 0.': 'The function f is not continuous at 0.',
+  'The real number r is at most √2.': 'The real number r is greater than √2.',
+  'The absolute value of the real number a is less than 3.': 'The absolute value of the real number a is at least 3.',
+  'Two angles of the triangle are 45°.': 'At most one angle of the triangle is 45°.',
+  'The area of the circle is at least 9π.': 'The area of the circle is less than 9π.',
+  'Two sides of the triangle have the same length.': 'The sides of the triangle have different lengths.',
+  'The point P in the plane lies outside of the circle C.': 'The point P in the plane lies on or inside the circle C.',
+  '√2 is a rational number.': '√2 is an irrational number.',
+  '0 is not a negative integer.': '0 is a negative integer.',
+  '111 is a prime number.': '111 is not a prime number.',
+  'At least two of my library books are overdue.': 'At most one of my library books is overdue.',
+  'No one expected that to happen.': 'Someone expected that to happen.',
+  'The real number x is positive.': 'The real number x is less than or equal to 0.',
+  'Every student in the class owns a laptop.': 'Some student in the class does not own a laptop.',
+  'Some integers are perfect squares.': 'No integer is a perfect square.',
+  'None of the doors are locked.': 'At least one of the doors is locked.',
+  'The set A is empty.': 'The set A has at least one element.',
+  'The integer k is greater than 7.': 'The integer k is at most 7.',
+  'The sets A and B are disjoint.': 'The sets A and B have at least one element in common.',
+  'A is a subset of B.': 'Some element of A is not in B.',
   // 2.9 De Morgan / implication negations
   'Either x = 0 or y = 0.': 'x ≠ 0 and y ≠ 0.',
   'The integers a and b are both even.': 'a is odd or b is odd.',
@@ -400,6 +434,18 @@ const NEGATIONS = {
   'x ≥ 2 or x ≤ −2.': '−2 < x < 2.',
   'The function f is continuous and f is not differentiable.': 'f is not continuous or f is differentiable.',
   'If Ann is late, then she misses the bus.': 'Ann is late and she does not miss the bus.',
+  'x > 0 and y < 0.': 'x ≤ 0 or y ≥ 0.',
+  'The integer n is even or n is a multiple of 3.': 'n is odd and n is not a multiple of 3.',
+  'If it snows, then school is closed.': 'It snows and school is not closed.',
+  'If x² = 9, then x = 3.': 'x² = 9 and x ≠ 3.',
+  'Sam plays guitar and Sam sings.': 'Sam does not play guitar or Sam does not sing.',
+  'I will take calculus or I will take statistics.': 'I will not take calculus and I will not take statistics.',
+  '0 < x < 1.': 'x ≤ 0 or x ≥ 1.',
+  'If a and b are odd, then a + b is even.': 'a and b are odd, and a + b is odd.',
+  'The set A is empty or the set B is empty.': 'A is nonempty and B is nonempty.',
+  'If the triangle is equilateral, then it is isosceles.': 'The triangle is equilateral and it is not isosceles.',
+  'The number x is rational and x² is irrational.': 'x is irrational or x² is rational.',
+  'If n is prime, then n is odd or n = 2.': 'n is prime, n is even, and n ≠ 2.',
   // 2.10 quantified
   'For all real numbers x, x² ≥ 0.': 'There exists a real number x such that x² < 0.',
   'There exists a rectangle R such that no angle of R is a right angle.': 'Every rectangle has at least one right angle.',
@@ -410,6 +456,16 @@ const NEGATIONS = {
   'There exists an integer n such that n² = 2.': 'For every integer n, n² ≠ 2.',
   'Some student in the class is left-handed.': 'No student in the class is left-handed.',
   'All cats have nine lives.': 'Some cat does not have nine lives.',
+  'Every real number has a real square root.': 'Some real number does not have a real square root.',
+  'There is a prime number greater than 100.': 'Every prime number is at most 100.',
+  'For every integer n, n² + n is even.': 'There exists an integer n such that n² + n is odd.',
+  'Some triangles have two right angles.': 'No triangle has two right angles.',
+  'For all real numbers x, if x > 1, then x² > x.': 'There exists a real number x such that x > 1 and x² ≤ x.',
+  'Every student in this class has taken calculus.': 'Some student in this class has not taken calculus.',
+  'There exists a real number x such that x² = −1.': 'For every real number x, x² ≠ −1.',
+  'No even integer is prime.': 'Some even integer is prime.',
+  'Every rational number is a real number.': 'Some rational number is not a real number.',
+  'If n is an odd integer, then 3n + 1 is even.': 'There is an odd integer n such that 3n + 1 is odd.',
 }
 
 const IF_THEN = {
@@ -421,6 +477,17 @@ const IF_THEN = {
   'The number √3 is irrational.': 'If x = √3, then x is irrational.',
   'Every multiple of 6 is even.': 'If n is a multiple of 6, then n is even.',
   'A square has four equal sides.': 'If a figure is a square, then it has four equal sides.',
+  'Every even integer greater than 2 is composite.': 'If n is an even integer greater than 2, then n is composite.',
+  'The sum of two odd integers is even.': 'If a and b are odd integers, then a + b is even.',
+  'All differentiable functions are continuous.': 'If a function is differentiable, then it is continuous.',
+  'The square of a real number is nonnegative.': 'If x is a real number, then x² ≥ 0.',
+  'An integer is divisible by 9 whenever the sum of its digits is divisible by 9.': 'If the sum of the digits of an integer is divisible by 9, then the integer is divisible by 9.',
+  'Every subset of a finite set is finite.': 'If A is a subset of a finite set, then A is finite.',
+  'The empty set is a subset of every set.': 'If A is a set, then ∅ ⊆ A.',
+  'A triangle with two equal angles is isosceles.': 'If a triangle has two equal angles, then it is isosceles.',
+  'Let n be an integer. Then n² + n is even.': 'If n is an integer, then n² + n is even.',
+  'Prime numbers greater than 2 are odd.': 'If p is a prime number greater than 2, then p is odd.',
+  'No multiple of 4 is odd.': 'If n is a multiple of 4, then n is not odd.',
 }
 
 const NEG_SYMBOLIC = {
@@ -429,6 +496,11 @@ const NEG_SYMBOLIC = {
   '\\sim(\\forall x,\\ P(x) \\Rightarrow Q(x))': '\\exists x \\text{ such that } P(x) \\wedge \\sim Q(x)',
   '\\sim(\\forall x \\in D,\\ P(x) \\wedge Q(x))': '\\exists x \\in D \\text{ such that } \\sim P(x) \\vee \\sim Q(x)',
   '\\sim(\\exists x \\in D \\text{ such that } P(x) \\vee Q(x))': '\\forall x \\in D,\\ \\sim P(x) \\wedge \\sim Q(x)',
+  '\\sim(\\exists x \\in D \\text{ such that } P(x) \\wedge Q(x))': '\\forall x \\in D,\\ \\sim P(x) \\vee \\sim Q(x)',
+  '\\sim(\\forall x \\in D,\\ P(x) \\vee Q(x))': '\\exists x \\in D \\text{ such that } \\sim P(x) \\wedge \\sim Q(x)',
+  '\\sim(\\exists x \\in D \\text{ such that } P(x) \\Rightarrow Q(x))': '\\forall x \\in D,\\ P(x) \\wedge \\sim Q(x)',
+  '\\sim(\\forall x \\in D,\\ \\sim P(x))': '\\exists x \\in D \\text{ such that } P(x)',
+  '\\sim(\\exists x \\in D \\text{ such that } \\sim P(x))': '\\forall x \\in D,\\ P(x)',
 }
 
 const quoted = text => {
@@ -494,6 +566,14 @@ const PQ = {
   'x² > 9': x => x * x > 9,
   'n is even': n => n % 2 === 0,
   'n is a multiple of 4': n => n % 4 === 0,
+  'xy = 0': (x, y) => x * y === 0,
+  'x = 0': x => x === 0,
+  'x < y': (x, y) => x < y,
+  'x² < y²': (x, y) => x * x < y * y,
+  'n is a multiple of 6': n => n % 6 === 0,
+  'n is a multiple of 3': n => n % 3 === 0,
+  '|x| = 3': x => x === 3 || x === -3,
+  'x = 3': x => x === 3,
 }
 
 // biconditional predicates keyed by LaTeX
@@ -512,6 +592,10 @@ const IFF_PRED = {
   '2n + 1 \\text{ is prime}': n => isPrime(2 * n + 1),
   'n^2 - n \\text{ is even}': n => (n * n - n) % 2 === 0,
   'n < 10': n => n < 10,
+  'n^2 \\text{ is odd}': n => (n * n) % 2 === 1,
+  'n^2 \\text{ is a multiple of } 4': n => (n * n) % 4 === 0,
+  '3n + 1 \\text{ is even}': n => (3 * n + 1) % 2 === 0,
+  'n \\text{ is a perfect square}': n => [1, 4, 9, 16, 25, 36, 49, 64, 81, 100].includes(n),
 }
 
 // quantified statements over infinite domains: brute-force searches
@@ -522,6 +606,7 @@ const grid = (lo, hi, step) => {
 }
 const REALS = grid(-20, 20, 0.125)
 const INTS = grid(-50, 50, 1)
+const NATS = INTS.filter(n => n >= 1)
 const RATS = (() => {
   const out = new Set()
   for (let d = 1; d <= 12; d++) for (let n = -60; n <= 60; n++) out.add(n / d)
@@ -550,6 +635,28 @@ const INFINITE = {
   '\\exists x \\in \\mathbb{R} \\text{ such that } |x| = -x': () => REALS.some(x => Math.abs(x) === -x),
   '\\forall n \\in \\mathbb{N},\\ n^2 + n + 41 \\text{ is prime}': () => INTS.filter(n => n >= 1).every(n => isPrime(n * n + n + 41)),
   '\\exists x \\in \\mathbb{Q} \\text{ such that } x^2 = 2': () => RATS.some(x => x * x === 2),
+  '\\forall x \\in \\mathbb{R},\\ x^2 + x + 1 > 0': () => REALS.every(x => x * x + x + 1 > 0),
+  '\\exists x \\in \\mathbb{R} \\text{ such that } x^2 < x': () => REALS.some(x => x * x < x),
+  '\\exists n \\in \\mathbb{N} \\text{ such that } n^2 < n': () => NATS.some(n => n * n < n),
+  '\\forall n \\in \\mathbb{N},\\ n^2 \\ge n': () => NATS.every(n => n * n >= n),
+  '\\exists x \\in \\mathbb{Z} \\text{ such that } 2x = 7': () => INTS.some(x => 2 * x === 7),
+  '\\exists x \\in \\mathbb{Q} \\text{ such that } 2x = 7': () => RATS.some(x => 2 * x === 7),
+  '\\forall x \\in \\mathbb{R},\\ \\sqrt{x^2} = x': () => REALS.every(x => Math.sqrt(x * x) === x),
+  '\\forall x \\in \\mathbb{R},\\ \\sqrt{x^2} = |x|': () => REALS.every(x => Math.sqrt(x * x) === Math.abs(x)),
+  '\\exists n \\in \\mathbb{N} \\text{ such that } n + 5 = 2': () => NATS.some(n => n + 5 === 2),
+  '\\exists n \\in \\mathbb{Z} \\text{ such that } n + 5 = 2': () => INTS.some(n => n + 5 === 2),
+  '\\forall n \\in \\mathbb{Z},\\ n^2 + n \\text{ is even}': () => INTS.every(n => (n * n + n) % 2 === 0),
+  '\\forall n \\in \\mathbb{Z},\\ n^2 \\text{ is even}': () => INTS.every(n => (n * n) % 2 === 0),
+  '\\forall x \\in \\mathbb{R},\\ 2x > x': () => REALS.every(x => 2 * x > x),
+  '\\forall n \\in \\mathbb{N},\\ 2n > n': () => NATS.every(n => 2 * n > n),
+  '\\exists x \\in \\mathbb{R} \\text{ such that } x^3 = -8': () => REALS.some(x => x * x * x === -8),
+  '\\exists x \\in \\mathbb{N} \\text{ such that } x^3 = -8': () => NATS.some(x => x * x * x === -8),
+  '\\forall x \\in \\mathbb{R},\\ x^3 \\ge x^2': () => REALS.every(x => x * x * x >= x * x),
+  '\\exists n \\in \\mathbb{N} \\text{ such that } n \\text{ is even and prime}': () => NATS.some(n => n % 2 === 0 && isPrime(n)),
+  '\\forall A \\in \\mathcal{P}(\\{1, 2, 3\\}),\\ |A| \\le 3': () => subsetsOf([1, 2, 3]).every(A => A.length <= 3),
+  '\\exists A \\in \\mathcal{P}(\\{1, 2\\}) \\text{ such that } |A| = 3': () => subsetsOf([1, 2]).some(A => A.length === 3),
+  '\\forall A \\in \\mathcal{P}(\\{1, 2\\}),\\ \\varnothing \\subseteq A': () => subsetsOf([1, 2]).every(A => subset([], A)),
+  '\\forall A \\in \\mathcal{P}(\\{1, 2\\}),\\ \\varnothing \\in A': () => subsetsOf([1, 2]).every(A => has(A, [])),
 }
 
 // counterexample statements: domain test + "breaks the claim" test
@@ -565,6 +672,16 @@ const COUNTER = {
   '\\forall x \\in \\mathbb{R},\\ -x^2 + 5x - 2 < 4': [() => true, x => -x * x + 5 * x - 2 >= 4],
   '\\forall n \\in \\mathbb{N},\\ \\text{if } n \\text{ is even, then } n \\text{ is a multiple of } 4': [n => Number.isInteger(n) && n >= 1, n => n % 2 === 0 && n % 4 !== 0],
   '\\forall x \\in \\mathbb{Z},\\ x^3 \\ge x': [x => Number.isInteger(x), x => x ** 3 < x],
+  '\\forall x \\in \\mathbb{R},\\ 2x > x': [() => true, x => x + x <= x],
+  '\\forall x \\in \\mathbb{R},\\ \\sqrt{x^2} = x': [() => true, x => Math.sqrt(x * x) !== x],
+  '\\forall n \\in \\mathbb{Z},\\ n^2 > n': [n => Number.isInteger(n), n => n * n <= n],
+  '\\forall x \\in \\mathbb{R},\\ x^3 \\ge x^2': [() => true, x => x * x * x < x * x],
+  '\\forall x \\in \\mathbb{R},\\ \\text{if } x > 0 \\text{ then } x^2 \\ge x': [() => true, x => x > 0 && x * x < x],
+  '\\forall n \\in \\mathbb{N},\\ \\text{if } n \\text{ is odd, then } n \\text{ is prime}': [n => Number.isInteger(n) && n >= 1, n => n % 2 !== 0 && !isPrime(n)],
+  '\\forall n \\in \\mathbb{N},\\ n^2 - n + 11 \\text{ is prime}': [n => Number.isInteger(n) && n >= 1, n => !isPrime(n * n - n + 11)],
+  '\\forall x \\in \\mathbb{R},\\ x + 1 > x^2': [() => true, x => x + 1 <= x * x],
+  '\\forall n \\in \\mathbb{N},\\ 3n + 1 \\text{ is even}': [n => Number.isInteger(n) && n >= 1, n => (3 * n + 1) % 2 === 1],
+  '\\forall n \\in \\mathbb{Z},\\ \\text{if } n^2 \\text{ is a multiple of } 4 \\text{, then } n \\text{ is a multiple of } 4': [n => Number.isInteger(n), n => (n * n) % 4 === 0 && n % 4 !== 0],
 }
 
 // partition-of-Z block predicates
@@ -747,17 +864,18 @@ export const derive = {
   },
   'partitions/count-partitions'(p) {
     const n = namedSets(p.text).A.length
-    // restricted growth strings
+    const exact = p.ask.match(/exactly (\d+) block/)
+    // restricted growth strings; `maxBlock + 1` blocks are in use at the end
     let count = 0
-    const go = (i, maxBlock, s) => {
+    const go = (i, maxBlock) => {
       if (i === n) {
-        count++
+        if (!exact || maxBlock + 1 === +exact[1]) count++
         return
       }
-      for (let b = 0; b <= maxBlock + 1; b++) go(i + 1, Math.max(maxBlock, b), s)
+      for (let b = 0; b <= maxBlock + 1; b++) go(i + 1, Math.max(maxBlock, b))
     }
     if (n === 0) return 1
-    go(1, 0, [0])
+    go(1, 0)
     return count
   },
   'partitions/partition-of-Z'(p) {
@@ -818,6 +936,7 @@ export const derive = {
     const s = quoted(p.text)
     if (STATEMENT_YES.has(s)) return 'yes'
     if (STATEMENT_NO.has(s)) return 'no'
+    for (const [re, verdict] of NUMBER_SENTENCE) if (re.test(s)) return verdict
     throw new Error(`unknown sentence ${s}`)
   },
   'statements/open-sentence-value'(p) {

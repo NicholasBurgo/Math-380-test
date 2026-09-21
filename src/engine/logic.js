@@ -231,6 +231,18 @@ export function truthTableLatex(vars, formulaLatex) {
   return `\\begin{array}{${'c'.repeat(vars.length)}|c} ${head} \\\\ \\hline ${rows} \\end{array}`
 }
 
+// Replace variables by formulas: map is { P: ast, ... }; unmapped variables
+// stay. A ~ sitting directly on a variable that maps to a negation cancels,
+// so substituting literals never manufactures a double negative.
+export function substitute(ast, map) {
+  if (ast.t === 'var') return map[ast.name] ?? ast
+  if (ast.t === 'not') {
+    const inner = substitute(ast.a, map)
+    return ast.a.t === 'var' && inner.t === 'not' ? inner.a : NOT(inner)
+  }
+  return { t: ast.t, a: substitute(ast.a, map), b: substitute(ast.b, map) }
+}
+
 export function randomFormula(rng, vars, ops, depth) {
   const pick = arr => arr[Math.floor(rng() * arr.length)]
   function build(d) {

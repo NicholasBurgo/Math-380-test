@@ -14,6 +14,25 @@ const BANK = [
   { s: 'Everyone in the class passed.', ok: 'Someone in the class did not pass.', bad: ['Everyone in the class failed.', 'No one in the class passed.', 'Someone in the class passed.'], why: 'one non-passer is enough to make "everyone passed" false' },
   { s: 'No cat can fly.', ok: 'Some cat can fly.', bad: ['Every cat can fly.', 'Some cat cannot fly.', 'No cat can walk.'], why: '"no cat can" is denied by a single flying cat' },
   { s: 'The function f is continuous at 0.', ok: 'The function f is not continuous at 0.', bad: ['The function f is continuous everywhere except 0.', 'The function f is not continuous anywhere.', 'The function f is differentiable at 0.'], why: 'deny exactly the claim: not continuous at 0' },
+  { s: 'The real number r is at most √2.', ok: 'The real number r is greater than √2.', bad: ['The real number r is at least √2.', 'The real number r is less than √2.', 'The real number r is not √2.'], why: 'the opposite of "at most" (≤) is "greater than" (>)' },
+  { s: 'The absolute value of the real number a is less than 3.', ok: 'The absolute value of the real number a is at least 3.', bad: ['The absolute value of the real number a is at most 3.', 'The absolute value of the real number a is greater than 3.', 'The absolute value of the real number a is not 3.'], why: 'the opposite of "less than 3" (< 3) is "at least 3" (≥ 3): the boundary 3 changes sides' },
+  { s: 'Two angles of the triangle are 45°.', ok: 'At most one angle of the triangle is 45°.', bad: ['No angle of the triangle is 45°.', 'All three angles of the triangle are 45°.', 'Exactly one angle of the triangle is 45°.'], why: 'the opposite of "two (or more)" is "one or none", i.e. at most one' },
+  { s: 'The area of the circle is at least 9π.', ok: 'The area of the circle is less than 9π.', bad: ['The area of the circle is at most 9π.', 'The area of the circle is more than 9π.', 'The area of the circle is not 9π.'], why: 'the opposite of "at least" (≥) is "less than" (<)' },
+  { s: 'Two sides of the triangle have the same length.', ok: 'The sides of the triangle have different lengths.', bad: ['All three sides of the triangle have the same length.', 'Two sides of the triangle have different lengths.', 'At most two sides of the triangle have the same length.'], why: 'if no two sides match, all three lengths are different; "two sides differ" is not enough, since an isosceles triangle has that too' },
+  { s: 'The point P in the plane lies outside of the circle C.', ok: 'The point P in the plane lies on or inside the circle C.', bad: ['The point P in the plane lies inside the circle C.', 'The point P in the plane lies on the circle C.', 'The point P does not lie in the plane.'], why: 'not outside leaves two cases, on the circle or inside it; "inside" alone drops the boundary' },
+  { s: '√2 is a rational number.', ok: '√2 is an irrational number.', bad: ['√2 is an integer.', '√2 is not a real number.', '√2 is a negative number.'], why: 'a real number that is not rational is irrational' },
+  { s: '0 is not a negative integer.', ok: '0 is a negative integer.', bad: ['0 is a positive integer.', '0 is not a positive integer.', '0 is not an integer.'], why: 'negating a "not" just removes it (the negation of a true statement is false, and that is fine)' },
+  { s: '111 is a prime number.', ok: '111 is not a prime number.', bad: ['111 is an even number.', '112 is a prime number.', '111 is not an odd number.'], why: 'deny exactly the claim made, nothing more' },
+  { s: 'At least two of my library books are overdue.', ok: 'At most one of my library books is overdue.', bad: ['At least two of my library books are not overdue.', 'None of my library books are overdue.', 'At most two of my library books are overdue.'], why: 'the opposite of "at least two" (≥ 2) is "at most one" (≤ 1)' },
+  { s: 'No one expected that to happen.', ok: 'Someone expected that to happen.', bad: ['Everyone expected that to happen.', 'No one expected that not to happen.', 'Someone did not expect that to happen.'], why: '"no one did" is denied by a single person who did' },
+  { s: 'The real number x is positive.', ok: 'The real number x is less than or equal to 0.', bad: ['The real number x is negative.', 'The real number x is 0.', 'The real number x is greater than or equal to 0.'], why: 'not positive means ≤ 0; "negative" wrongly drops the case 0' },
+  { s: 'Every student in the class owns a laptop.', ok: 'Some student in the class does not own a laptop.', bad: ['No student in the class owns a laptop.', 'Every student in the class does not own a laptop.', 'Some student in the class owns a laptop.'], why: 'one student without a laptop is enough to make "every student owns one" false' },
+  { s: 'Some integers are perfect squares.', ok: 'No integer is a perfect square.', bad: ['Some integers are not perfect squares.', 'All integers are perfect squares.', 'Not all integers are perfect squares.'], why: 'the negation of "some are" is "none are"' },
+  { s: 'None of the doors are locked.', ok: 'At least one of the doors is locked.', bad: ['All of the doors are locked.', 'At least one of the doors is not locked.', 'None of the doors are unlocked.'], why: '"none are locked" is denied by a single locked door' },
+  { s: 'The set A is empty.', ok: 'The set A has at least one element.', bad: ['The set A has exactly one element.', 'The set A is infinite.', 'The set A has no elements.'], why: 'not empty means |A| ≥ 1: at least one element, with no upper limit' },
+  { s: 'The integer k is greater than 7.', ok: 'The integer k is at most 7.', bad: ['The integer k is less than 7.', 'The integer k is at least 7.', 'The integer k is not 7.'], why: 'the opposite of "> 7" is "≤ 7"; "less than 7" wrongly drops the case 7' },
+  { s: 'The sets A and B are disjoint.', ok: 'The sets A and B have at least one element in common.', bad: ['The sets A and B are equal.', 'A is a subset of B.', 'The sets A and B have exactly one element in common.'], why: 'disjoint means A ∩ B = ∅, so the negation is A ∩ B ≠ ∅: at least one shared element' },
+  { s: 'A is a subset of B.', ok: 'Some element of A is not in B.', bad: ['No element of A is in B.', 'B is a subset of A.', 'Some element of B is not in A.'], why: 'A ⊆ B says every element of A is in B; one element of A outside B breaks it' },
 ]
 
 // Inequality statements and their negations (typed).
@@ -60,6 +79,11 @@ const SUBJECTS = [
   { who: 'Sam', verb: 'owns', noun: 'books' },
   { who: 'The recipe', verb: 'needs', noun: 'eggs' },
   { who: 'The team', verb: 'won', noun: 'games' },
+  { who: 'The library', verb: 'ordered', noun: 'copies' },
+  { who: 'Maria', verb: 'solved', noun: 'problems' },
+  { who: 'The garden', verb: 'has', noun: 'rose bushes' },
+  { who: 'The exam', verb: 'has', noun: 'questions' },
+  { who: 'The bus', verb: 'holds', noun: 'passengers' },
 ]
 const QUANT = {
   'at least': 'fewer than',
@@ -162,7 +186,7 @@ export default {
       generate() {
         const s = choice(SUBJECTS)
         const q = choice(Object.keys(QUANT))
-        const k = choice([5, 10, 12, 20, 30, 50])
+        const k = choice([3, 5, 8, 10, 12, 15, 20, 25, 30, 50])
         const phrase = qq => `${s.who} ${s.verb} ${qq} ${k} ${s.noun}.`
         const ok = phrase(QUANT[q])
         const bad = Object.keys(QUANT)

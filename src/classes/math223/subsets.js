@@ -258,38 +258,51 @@ export default {
     {
       id: 'list-power-set',
       generate() {
-        const pick = choice([
-          {
-            set: '\\varnothing',
-            ok: '\\{\\varnothing\\}',
-            bad: ['\\varnothing', '\\{\\{\\varnothing\\}\\}', '\\{\\varnothing, \\{\\varnothing\\}\\}'],
+        const E = '\\varnothing'
+        const set = els => `\\{${els.join(', ')}\\}`
+        const kind = choice(['empty', 'one', 'two', 'two', 'two', 'nested', 'mixed'])
+        let pick
+        if (kind === 'empty') {
+          pick = {
+            set: E,
+            ok: set([E]),
+            bad: [E, set([set([E])]), set([E, set([E])])],
             why: 'the only subset of ∅ is ∅ itself, so P(∅) = {∅}: one element',
-          },
-          {
-            set: '\\{a\\}',
-            ok: '\\{\\varnothing, \\{a\\}\\}',
-            bad: ['\\{\\{a\\}\\}', '\\{\\varnothing, a\\}', '\\{a\\}'],
-            why: 'a one-element set has two subsets: ∅ and {a}',
-          },
-          {
-            set: '\\{1, 2\\}',
-            ok: '\\{\\varnothing, \\{1\\}, \\{2\\}, \\{1, 2\\}\\}',
-            bad: ['\\{\\{1\\}, \\{2\\}, \\{1, 2\\}\\}', '\\{\\varnothing, 1, 2, \\{1, 2\\}\\}', '\\{\\{1\\}, \\{2\\}\\}'],
-            why: '2² = 4 subsets: ∅, the two singletons, and the whole set',
-          },
-          {
-            set: '\\{x, y\\}',
-            ok: '\\{\\varnothing, \\{x\\}, \\{y\\}, \\{x, y\\}\\}',
-            bad: ['\\{\\varnothing, \\{x\\}, \\{y\\}\\}', '\\{\\{x\\}, \\{y\\}, \\{x, y\\}\\}', '\\{\\varnothing, x, y, \\{x, y\\}\\}'],
-            why: '2² = 4 subsets: ∅, the two singletons, and the whole set',
-          },
-          {
-            set: '\\{\\varnothing\\}',
-            ok: '\\{\\varnothing, \\{\\varnothing\\}\\}',
-            bad: ['\\{\\varnothing\\}', '\\{\\{\\varnothing\\}\\}', '\\varnothing'],
+          }
+        } else if (kind === 'nested') {
+          pick = {
+            set: set([E]),
+            ok: set([E, set([E])]),
+            bad: [set([E]), set([set([E])]), E],
             why: '{∅} has one element, so two subsets: ∅ and {∅} itself',
-          },
-        ])
+          }
+        } else if (kind === 'one') {
+          const a = choice(['a', 'b', 'x', 'y', 1, 2, 5, 7, 0])
+          pick = {
+            set: set([a]),
+            ok: set([E, set([a])]),
+            bad: [set([set([a])]), set([E, a]), set([a]), set([E])],
+            why: `a one-element set has two subsets: ∅ and {${a}}`,
+          }
+        } else if (kind === 'mixed') {
+          // ∅ as an element next to an ordinary element
+          const a = choice(['a', 'x', 1, 2])
+          pick = {
+            set: set([E, a]),
+            ok: set([E, set([E]), set([a]), set([E, a])]),
+            bad: [set([E, set([a]), set([E, a])]), set([set([E]), set([a]), set([E, a])]), set([E, a, set([E, a])]), set([E, set([E]), set([a])])],
+            why: `two elements (∅ and ${a}) give 2² = 4 subsets: the empty subset ∅, the singletons {∅} and {${a}}, and the whole set`,
+          }
+        } else {
+          const [a, b] = choice([['a', 'b'], ['x', 'y'], ['p', 'q'], ['s', 't'], [1, 2], [0, 1], [3, 5], [2, 4], [7, 9], [4, 6]])
+          pick = {
+            set: set([a, b]),
+            ok: set([E, set([a]), set([b]), set([a, b])]),
+            bad: [set([set([a]), set([b]), set([a, b])]), set([E, a, b, set([a, b])]), set([set([a]), set([b])]), set([E, set([a]), set([b])]), set([E, set([a, b])])],
+            why: '2² = 4 subsets: ∅, the two singletons, and the whole set',
+          }
+        }
+        pick.bad = shuffle(pick.bad)
         return withOptions(
           {
             ask: 'Which is the power set?',

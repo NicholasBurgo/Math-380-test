@@ -1,5 +1,5 @@
 import { choice, shuffle } from '../../engine/rand.js'
-import { parse, toLatex, toText, column, colString, isTautology, isContradiction } from '../../engine/logic.js'
+import { V, NOT, parse, toLatex, toText, column, colString, isTautology, isContradiction, substitute, evaluate } from '../../engine/logic.js'
 
 const FORMULAS = [
   'P v ~P', 'P => P', '(P ^ Q) => P', 'P => (P v Q)', '(P => Q) <=> (~Q => ~P)', '((P => Q) ^ P) => Q',
@@ -9,12 +9,46 @@ const FORMULAS = [
   'P ^ (P => ~P)', '~(P => P)', '(P ^ Q) ^ ~(P v Q)', '(P <=> Q) ^ (P ^ ~Q)',
   'P ^ Q', 'P v Q', 'P => Q', 'P <=> Q', '(P v Q) => P', '~P v Q', 'P => ~Q', '(P => Q) => P', 'P ^ ~Q',
   '~(P ^ Q)', '(P ^ Q) v R', 'P => (Q ^ R)', '(P v Q) ^ ~Q', 'Q => (P ^ Q)',
+  '(P ^ Q) => Q', '((P => Q) ^ ~Q) => ~P', '((P v Q) ^ ~P) => Q', '((P => Q) ^ (Q => R)) => (P => R)',
+  '~(P ^ Q) <=> (~P v ~Q)', '~(P v Q) <=> (~P ^ ~Q)', '~(P => Q) <=> (P ^ ~Q)', '(P <=> Q) <=> (Q <=> P)', '(P ^ Q) => (P <=> Q)',
+  '((P => Q) ^ P) ^ ~Q', '(P <=> Q) ^ (P <=> ~Q)', '~((P ^ Q) => P)', '(P ^ Q) ^ (P => ~Q)', '~(P => (Q => P))', '~(P v Q) ^ P', '(P => Q) ^ ~(~P v Q)',
+  '(P => Q) => (Q => P)', '(P => Q) ^ (Q => P)', '(P v Q) => (P ^ Q)', '~P => (P ^ Q)', '(P => Q) <=> (Q => P)', '(P ^ Q) => R',
+  '(P v ~Q) ^ Q', 'P => (P ^ Q)', '(P v Q) => Q', '(P => Q) => Q', '~P <=> Q', '(P => Q) ^ ~P',
 ]
+const kindOf = ast => (isTautology(ast) ? 'tautology' : isContradiction(ast) ? 'contradiction' : 'neither')
 const CLASSIFIED = FORMULAS.map(src => {
   const ast = parse(src)
-  const kind = isTautology(ast) ? 'tautology' : isContradiction(ast) ? 'contradiction' : 'neither'
-  return { ast, kind }
+  return { ast, kind: kindOf(ast) }
 })
+
+// Same pattern, fresh letters: relabel P, Q, R (sometimes as a negated
+// letter). A tautology or contradiction stays one under any substitution;
+// a "neither" pattern can collapse, so those are re-checked.
+function relabel(item) {
+  for (let tries = 0; tries < 8; tries++) {
+    const names = shuffle(['P', 'Q', 'R', 'S']).slice(0, 3)
+    const map = {}
+    ;['P', 'Q', 'R'].forEach((v, i) => (map[v] = Math.random() < 0.2 ? NOT(V(names[i])) : V(names[i])))
+    const ast = substitute(item.ast, map)
+    if (kindOf(ast) === item.kind) return ast
+  }
+  return item.ast
+}
+
+// A statement built from P, T, C whose value depends on at most P.
+function randomSimplify() {
+  const atoms = [V('P'), NOT(V('P')), V('T'), V('C')]
+  const ops = ['and', 'or', 'imp', 'iff']
+  for (;;) {
+    let f = { t: choice(ops), a: choice(atoms), b: choice(atoms) }
+    if (Math.random() < 0.4) {
+      const outer = { t: choice(ops), a: f, b: choice(atoms) }
+      f = Math.random() < 0.5 ? outer : { t: outer.t, a: outer.b, b: outer.a }
+    }
+    const src = toText(f)
+    if (/[TC]/.test(src) && src.includes('P')) return f
+  }
+}
 
 // P ∧ C, P ∨ T, ... simplified to P, ~P, T, or C.
 const SIMPLIFY = [
@@ -63,7 +97,8 @@ export default {
       id: 'classify',
       generate() {
         const kind = choice(['tautology', 'contradiction', 'neither'])
-        const item = choice(CLASSIFIED.filter(c => c.kind === kind))
+        const ast = relabel(choice(CLASSIFIED.filter(c => c.kind === kind)))
+        const item = { ast, kind }
         const col = colString(column(item.ast))
         return {
           ask: 'Tautology, contradiction, or neither?',
@@ -84,7 +119,19 @@ export default {
     {
       id: 'simplify',
       generate() {
-        const item = choice(SIMPLIFY)
+        let item = choice(SIMPLIFY)
+        if (Math.random() < 0.55) {
+          const f = randomSimplify()
+          const at = P => evaluate(f, { P, T: true, C: false })
+          const [whenT, whenF] = [at(true), at(false)]
+          const ans = whenT && whenF ? 'T' : !whenT && !whenF ? 'C' : whenT ? 'P' : '~P'
+          const word = v => (v ? 'true' : 'false')
+          item = {
+            latex: toLatex(f),
+            ans,
+            why: `with P true the statement is ${word(whenT)}, and with P false it is ${word(whenF)}, which is exactly the column of ${ans}`,
+          }
+        }
         return {
           ask: 'T is a tautology, C a contradiction, P a statement. Simplify.',
           latex: `${item.latex} \\;\\equiv\\; ?`,

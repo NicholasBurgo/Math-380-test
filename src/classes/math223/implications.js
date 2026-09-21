@@ -14,6 +14,15 @@ const CLAUSES = [
   { a: 'n is a multiple of 4', na: 'n is not a multiple of 4', b: 'n is even', nb: 'n is odd' },
   { a: 'it rains', na: 'it does not rain', b: 'the game is cancelled', nb: 'the game is not cancelled' },
   { a: 'x > 3', na: 'x ≤ 3', b: 'x² > 9', nb: 'x² ≤ 9' },
+  { a: 'n is divisible by 6', na: 'n is not divisible by 6', b: 'n is divisible by 3', nb: 'n is not divisible by 3' },
+  { a: 'the triangle is equilateral', na: 'the triangle is not equilateral', b: 'the triangle is isosceles', nb: 'the triangle is not isosceles' },
+  { a: 'Maria finishes her homework', na: 'Maria does not finish her homework', b: 'Maria watches a movie', nb: 'Maria does not watch a movie' },
+  { a: 'the function is differentiable', na: 'the function is not differentiable', b: 'the function is continuous', nb: 'the function is not continuous' },
+  { a: 'x = 2', na: 'x ≠ 2', b: 'x² = 4', nb: 'x² ≠ 4' },
+  { a: 'the store is open', na: 'the store is closed', b: 'the lights are on', nb: 'the lights are off' },
+  { a: 'ab is odd', na: 'ab is even', b: 'a is odd', nb: 'a is even' },
+  { a: 'Tom is in Hammond', na: 'Tom is not in Hammond', b: 'Tom is in Louisiana', nb: 'Tom is not in Louisiana' },
+  { a: 'the alarm rings', na: 'the alarm does not ring', b: 'the dog barks', nb: 'the dog does not bark' },
 ]
 
 // Phrasings of X ⇒ Y using the two clauses. `swap` means the sentence
@@ -27,7 +36,8 @@ const PHRASINGS = [
   { make: (X, Y) => `In order that ${Y}, it is sufficient that ${X}.`, name: 'X sufficient for Y means X ⇒ Y' },
   { make: (X, Y) => `In order that ${X}, it is necessary that ${Y}.`, name: 'Y necessary for X means X ⇒ Y' },
 ]
-const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
+// Sentence case, except a leading math variable (x, n, ab) stays lowercase.
+const cap = s => (/^[a-z]{1,2}[ ²]/.test(s) && !/^(it|he|we) /.test(s) ? s : s.charAt(0).toUpperCase() + s.slice(1))
 
 // Open sentences P(x, y) ⇒ Q(x, y) (or in one variable) evaluated at a point.
 const OPEN = [
@@ -71,7 +81,41 @@ const OPEN = [
     p: n => n % 4 === 0, q: n => n % 2 === 0,
     points: [[6], [8], [5], [12], [2], [7]],
   },
+  {
+    vars: 'x, y', P: 'xy = 0', Q: 'x = 0',
+    p: (x, y) => x * y === 0, q: x => x === 0,
+    points: [[0, 3], [3, 0], [0, 0], [2, 5], [-1, 0], [0, -4]],
+  },
+  {
+    vars: 'x, y', P: 'x < y', Q: 'x^2 < y^2',
+    p: (x, y) => x < y, q: (x, y) => x * x < y * y,
+    points: [[1, 2], [-3, 1], [-2, -1], [2, 1], [0, 4], [-5, 5]],
+  },
+  {
+    vars: 'n', P: 'n \\text{ is a multiple of } 6', Q: 'n \\text{ is a multiple of } 3',
+    p: n => n % 6 === 0, q: n => n % 3 === 0,
+    points: [[6], [9], [12], [4], [18], [15]],
+  },
+  {
+    vars: 'n', P: 'n \\text{ is a multiple of } 3', Q: 'n \\text{ is a multiple of } 6',
+    p: n => n % 3 === 0, q: n => n % 6 === 0,
+    points: [[6], [9], [12], [4], [18], [15]],
+  },
+  {
+    vars: 'x', P: '|x| = 3', Q: 'x = 3',
+    p: x => Math.abs(x) === 3, q: x => x === 3,
+    points: [[3], [-3], [0], [5], [-5]],
+  },
 ]
+
+// Half the time a fresh random point, so the curated corner cases do not
+// become the only ones ever seen.
+function openPoint(o) {
+  if (Math.random() < 0.5) return choice(o.points)
+  const two = o.vars.includes(',')
+  if (two) return [randInt(-4, 4), randInt(-4, 4)]
+  return [o.vars === 'n' ? randInt(1, 24) : randInt(-7, 7)]
+}
 
 const plain = s => s.replace(/\s*\\text\{\s*/g, ' ').replace(/\}/g, '').replace(/\^2/g, '²').replace(/\s+/g, ' ').trim()
 
@@ -90,6 +134,17 @@ const IF_THEN = [
   { s: 'The number √3 is irrational.', ok: 'If x = √3, then x is irrational.', bad: ['If x is irrational, then x = √3.', 'If x is a real number, then x is irrational.', 'If x = 3, then √x is rational.'] },
   { s: 'Every multiple of 6 is even.', ok: 'If n is a multiple of 6, then n is even.', bad: ['If n is even, then n is a multiple of 6.', 'If n is a multiple of 6, then n is odd.', 'If n is an integer, then n is a multiple of 6.'] },
   { s: 'A square has four equal sides.', ok: 'If a figure is a square, then it has four equal sides.', bad: ['If a figure has four equal sides, then it is a square.', 'If a figure is a square, then it has four right angles.', 'A figure is a square if and only if it has four equal sides.'] },
+  { s: 'Every even integer greater than 2 is composite.', ok: 'If n is an even integer greater than 2, then n is composite.', bad: ['If n is composite, then n is an even integer greater than 2.', 'If n is an even integer, then n is composite.', 'If n is an integer greater than 2, then n is even.'] },
+  { s: 'The sum of two odd integers is even.', ok: 'If a and b are odd integers, then a + b is even.', bad: ['If a + b is even, then a and b are odd integers.', 'If a and b are integers, then a + b is even.', 'If a and b are odd integers, then a + b is odd.'] },
+  { s: 'All differentiable functions are continuous.', ok: 'If a function is differentiable, then it is continuous.', bad: ['If a function is continuous, then it is differentiable.', 'If a function is not differentiable, then it is not continuous.', 'A function is differentiable if and only if it is continuous.'] },
+  { s: 'The square of a real number is nonnegative.', ok: 'If x is a real number, then x² ≥ 0.', bad: ['If x² ≥ 0, then x is a real number.', 'If x is a real number, then x² > 0.', 'If x ≥ 0, then x² is a real number.'] },
+  { s: 'An integer is divisible by 9 whenever the sum of its digits is divisible by 9.', ok: 'If the sum of the digits of an integer is divisible by 9, then the integer is divisible by 9.', bad: ['If an integer is divisible by 9, then the sum of its digits is divisible by 9.', 'If the sum of the digits of an integer is divisible by 3, then the integer is divisible by 9.', 'An integer is divisible by 9 if and only if the sum of its digits is divisible by 9.'] },
+  { s: 'Every subset of a finite set is finite.', ok: 'If A is a subset of a finite set, then A is finite.', bad: ['If A is finite, then A is a subset of a finite set.', 'If A is a set, then A is finite.', 'If A is a subset of a set B, then B is finite.'] },
+  { s: 'The empty set is a subset of every set.', ok: 'If A is a set, then ∅ ⊆ A.', bad: ['If ∅ ⊆ A, then A is a set.', 'If A is a set, then A ⊆ ∅.', 'If A is a set, then ∅ ∈ A.'] },
+  { s: 'A triangle with two equal angles is isosceles.', ok: 'If a triangle has two equal angles, then it is isosceles.', bad: ['If a triangle is isosceles, then it has two equal angles.', 'If a figure is a triangle, then it is isosceles.', 'If a triangle has two equal angles, then it is equilateral.'] },
+  { s: 'Let n be an integer. Then n² + n is even.', ok: 'If n is an integer, then n² + n is even.', bad: ['If n² + n is even, then n is an integer.', 'If n is an even integer, then n² + n is even.', 'If n is an integer, then n² + n is odd.'] },
+  { s: 'Prime numbers greater than 2 are odd.', ok: 'If p is a prime number greater than 2, then p is odd.', bad: ['If p is odd, then p is a prime number greater than 2.', 'If p is a prime number, then p is odd.', 'If p is greater than 2, then p is an odd prime number.'] },
+  { s: 'No multiple of 4 is odd.', ok: 'If n is a multiple of 4, then n is not odd.', bad: ['If n is not odd, then n is a multiple of 4.', 'If n is not a multiple of 4, then n is odd.', 'If n is odd, then n is a multiple of 4.'] },
 ]
 
 const MUSTANG = {
@@ -225,7 +280,7 @@ export default {
       id: 'open-imp',
       generate() {
         const o = choice(OPEN)
-        const pt = choice(o.points)
+        const pt = openPoint(o)
         const p = o.p(...pt)
         const q = o.q(...pt)
         const v = !p || q

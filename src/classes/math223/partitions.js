@@ -1,8 +1,10 @@
 import { randInt, choice, shuffle } from '../../engine/rand.js'
-import { setStr, setLatex, randSubset, sortEls, yn, ynLatex, withOptions } from './util.js'
+import { setStr, setLatex, randSubset, sortEls, yn, ynLatex, withOptions, gcd } from './util.js'
 
 const NUMS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 const BELL = { 1: 1, 2: 2, 3: 5, 4: 15 }
+// Partitions of an n-set into exactly k blocks, keyed "n,k".
+const BLOCKS = { '3,2': 3, '3,3': 1, '4,1': 1, '4,2': 7, '4,3': 6, '5,2': 15, '5,4': 10 }
 
 function splitBlocks(A, n) {
   const els = shuffle(A)
@@ -28,6 +30,24 @@ const Z_ITEMS = [
   { latex: '\\{\\{x \\in \\mathbb{Z} \\mid x \\text{ is even}\\}, \\{x \\in \\mathbb{Z} \\mid x \\text{ is a multiple of } 4\\}, \\{x \\in \\mathbb{Z} \\mid x \\text{ is odd}\\}\\}', ok: false, why: '4 is even and a multiple of 4, so two blocks overlap' },
 ]
 
+// Fresh cut points and moduli each time, in the same notation as Z_ITEMS.
+// Values already used by the fixed items are skipped so no option repeats.
+function zGenerated() {
+  const k = choice([-9, -8, -7, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 6, 7, 8, 9])
+  const m = choice([2, 4, 5, 6, 7])
+  const [a, b] = sortEls(shuffle([3, 4, 5, 6, 7, 10]).slice(0, 2))
+  const cut = rel => `\\{x \\in \\mathbb{Z} \\mid x ${rel} ${k}\\}`
+  const both = (a * b) / gcd(a, b)
+  return [
+    { latex: `\\{${cut('<')}, ${cut('\\ge')}\\}`, ok: true, why: `every integer is either below ${k} or at least ${k}, and not both` },
+    { latex: `\\{${cut('\\le')}, ${cut('>')}\\}`, ok: true, why: `every integer is either at most ${k} or above ${k}, and not both` },
+    { latex: `\\{${cut('\\le')}, ${cut('\\ge')}\\}`, ok: false, why: `${k} is in both blocks` },
+    { latex: `\\{${cut('<')}, ${cut('>')}\\}`, ok: false, why: `${k} is in neither block` },
+    { latex: `\\{\\text{multiples of } ${m}, \\text{integers not divisible by } ${m}\\}`, ok: true, why: 'a set and its complement in ℤ always partition ℤ when both are nonempty' },
+    { latex: `\\{\\text{multiples of } ${a}, \\text{multiples of } ${b}, \\text{all other integers}\\}`, ok: false, why: `${both} is a multiple of ${a} and of ${b}, so two blocks overlap` },
+  ]
+}
+
 export default {
   id: 'partitions',
   name: 'Partitions',
@@ -37,6 +57,7 @@ export default {
       { label: 'Pairwise disjoint', latex: 'A_i \\cap A_j = \\varnothing \\text{ whenever } i \\ne j' },
       { label: 'Partition of A', latex: '\\{A_1, \\ldots, A_n\\}: \\; A_i \\ne \\varnothing, \\; A = A_1 \\cup \\cdots \\cup A_n, \\; \\text{pairwise disjoint}' },
       { label: 'Partitions of a small set', latex: '|A| = 1, 2, 3, 4 \\;\\Rightarrow\\; 1, 2, 5, 15 \\text{ partitions}' },
+      { label: 'Exactly two blocks / exactly n − 1 blocks', latex: '2^{n-1} - 1 \\qquad / \\qquad \\binom{n}{2}' },
     ],
     how: [
       'Three checks, every time: (1) no block is empty, (2) the blocks together give back all of A, nothing extra, (3) no element sits in two blocks.',
@@ -93,19 +114,46 @@ export default {
     {
       id: 'count-partitions',
       generate() {
-        const n = randInt(1, 4)
-        const A = ['a', 'b', 'c', 'd'].slice(0, n)
+        const pool = choice([['a', 'b', 'c', 'd', 'e'], ['v', 'w', 'x', 'y', 'z'], ['p', 'q', 'r', 's', 't'], [1, 2, 3, 4, 5, 6, 7, 8, 9]])
+        if (Math.random() < 0.5) {
+          const n = randInt(1, 4)
+          const A = randSubset(pool, n, n)
+          return {
+            ask: 'How many partitions?',
+            text: `Count the different partitions of A = ${setStr(A)}.`,
+            latex: '\\#\\{\\text{partitions of } A\\} = \\,?',
+            size: 'small',
+            answer: BELL[n],
+            hint: {
+              latex: '\\{a,b,c\\}: \\{\\{a,b,c\\}\\},\\ \\{\\{a,b\\},\\{c\\}\\},\\ \\{\\{a,c\\},\\{b\\}\\},\\ \\{\\{b,c\\},\\{a\\}\\},\\ \\{\\{a\\},\\{b\\},\\{c\\}\\}',
+              text: 'Organize by number of blocks: one block (the set itself), then two blocks, and so on, up to all singletons. For 1, 2, 3, 4 elements the counts are 1, 2, 5, 15.',
+            },
+            distractors: [2 ** n, n, 2 ** n - 1, n * (n - 1)],
+          }
+        }
+        // partitions into exactly k blocks
+        const [n, k] = choice([[3, 2], [4, 2], [4, 3], [5, 2], [5, 4], [3, 3], [4, 1]])
+        const A = randSubset(pool, n, n)
+        const count = BLOCKS[`${n},${k}`]
+        const how =
+          k === 1
+            ? 'One block means the block is A itself, so there is exactly one such partition.'
+            : k === n
+              ? `${k} blocks from ${n} elements forces every block to be a singleton: one partition.`
+              : k === n - 1
+                ? `${k} blocks from ${n} elements means one pair and the rest singletons, so count the pairs: C(${n}, 2) = ${count}.`
+                : `Two blocks: pick the block containing the first element. Any of the 2^${n - 1} subsets of the other elements can join it, except all of them (that would leave the second block empty): 2^${n - 1} − 1 = ${count}.`
         return {
-          ask: 'How many partitions?',
-          text: `Count the different partitions of A = ${setStr(A)}.`,
-          latex: '\\#\\{\\text{partitions of } A\\} = \\,?',
+          ask: `How many partitions of A have exactly ${k} block${k === 1 ? '' : 's'}?`,
+          text: `A = ${setStr(A)}.`,
+          latex: `\\#\\{\\text{partitions of } A \\text{ into } ${k} \\text{ block${k === 1 ? '' : 's'}}\\} = \\,?`,
           size: 'small',
-          answer: BELL[n],
+          answer: count,
           hint: {
-            latex: '\\{a,b,c\\}: \\{\\{a,b,c\\}\\},\\ \\{\\{a,b\\},\\{c\\}\\},\\ \\{\\{a,c\\},\\{b\\}\\},\\ \\{\\{b,c\\},\\{a\\}\\},\\ \\{\\{a\\},\\{b\\},\\{c\\}\\}',
-            text: 'Organize by number of blocks: one block (the set itself), then two blocks, and so on, up to all singletons. For 1, 2, 3, 4 elements the counts are 1, 2, 5, 15.',
+            latex: '\\text{blocks: nonempty, pairwise disjoint, union} = A',
+            text: how,
           },
-          distractors: [2 ** n, n, 2 ** n - 1, n * (n - 1)],
+          distractors: [count + 1, 2 ** n, BELL[n] ?? 52, n * k, count - 1],
         }
       },
     },
@@ -113,8 +161,9 @@ export default {
       id: 'partition-of-Z',
       generate() {
         const askYes = Math.random() < 0.5
-        const good = shuffle(Z_ITEMS.filter(i => i.ok))
-        const bad = shuffle(Z_ITEMS.filter(i => !i.ok))
+        const items = [...Z_ITEMS, ...zGenerated()]
+        const good = shuffle(items.filter(i => i.ok))
+        const bad = shuffle(items.filter(i => !i.ok))
         const correct = askYes ? good[0] : bad[0]
         const wrong = askYes ? bad.slice(0, 3) : good.slice(0, 3)
         return withOptions(

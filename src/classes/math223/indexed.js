@@ -190,7 +190,7 @@ export default {
     {
       id: 'multiples',
       generate() {
-        const ms = randSubset([2, 3, 4, 5, 6, 7, 9, 10], 2, 3)
+        const ms = randSubset([2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15], 2, 3)
         const L = ms.reduce((a, b) => lcm(a, b))
         const prod = ms.reduce((a, b) => a * b)
         const defs = ms.map((m, i) => `A_${i + 1} = {x ∈ ℤ⁺ | x is a multiple of ${m}}`).join(', ')

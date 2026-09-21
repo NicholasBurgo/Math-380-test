@@ -16,6 +16,18 @@ const STATEMENTS = [
   { s: 'Every even integer greater than 2 is the sum of two primes.', why: 'true or false, unknown which: still a statement' },
   { s: 'Some prime number is even.', why: 'declarative and true (2 is even)' },
   { s: 'The number 15 is a multiple of 4.', why: 'declarative and false' },
+  { s: 'The sum of two even integers is even.', why: 'declarative and true' },
+  { s: 'Every rectangle is a square.', why: 'declarative and false: false statements are still statements' },
+  { s: 'Baton Rouge is the capital of Louisiana.', why: 'declarative and true' },
+  { s: '3 is an even integer.', why: 'declarative and false' },
+  { s: 'There is a largest prime number.', why: 'declarative and false (Euclid proved there is no largest prime)' },
+  { s: 'The decimal expansion of π contains one million consecutive 7s.', why: 'it is either true or false even though nobody knows which' },
+  { s: '1 + 1 = 2 and 2 + 2 = 5.', why: 'a compound of two statements is a statement (this one is false)' },
+  { s: 'The empty set is a subset of every set.', why: 'declarative and true' },
+  { s: 'For every real number x, x² ≥ 0.', why: '"for every" quantifies x, so no variable is left free: this is a true statement' },
+  { s: 'There exists an integer n such that n² = 2.', why: '"there exists" quantifies n, so no variable is left free: this is a false statement' },
+  { s: 'Louisiana has 64 parishes.', why: 'declarative with a definite truth value, whether or not you know it' },
+  { s: 'The 100th digit of π is 7.', why: 'it has a definite truth value even if you would have to look it up' },
 ]
 
 const NOT_STATEMENTS = [
@@ -33,7 +45,48 @@ const NOT_STATEMENTS = [
   { s: 'Study for the test!', why: 'a command has no truth value' },
   { s: 'n and n + 2 are both prime.', why: 'depends on n: an open sentence' },
   { s: 'Wow, what a game!', why: 'an exclamation has no truth value' },
+  { s: 'This sentence is false.', why: 'a paradox: it cannot be true and cannot be false, so it has no truth value' },
+  { s: '3x − 2 is positive.', why: 'x is a free variable, so this is an open sentence' },
+  { s: 'The number m is even.', why: 'm is unspecified: true for some m, false for others' },
+  { s: 'Do your homework.', why: 'a command has no truth value' },
+  { s: 'How many primes are there?', why: 'a question has no truth value' },
+  { s: 'It is a rectangle.', why: '"it" is unspecified, so this is an open sentence' },
+  { s: 'Happy birthday!', why: 'an exclamation has no truth value' },
+  { s: 'May I borrow your pencil?', why: 'a question has no truth value' },
+  { s: 'x is a rational number.', why: 'x is a free variable: true for some x, false for others' },
+  { s: 'Let n be an integer.', why: 'this sets up a variable; it asserts nothing that could be true or false' },
+  { s: '5x + 3.', why: 'an expression, not a sentence: it asserts nothing' },
+  { s: 'A ⊆ B.', why: 'A and B are unspecified sets, so the truth depends on them: an open sentence' },
 ]
+
+// Number-filled sentences: a claim about specific numbers is a statement
+// (true or false); the same claim about a variable is an open sentence.
+const PROPS = [
+  { say: 'prime', test: n => isPrime(n) },
+  { say: 'even', test: n => n % 2 === 0 },
+  { say: 'odd', test: n => n % 2 === 1 },
+  { say: 'a perfect square', test: n => Number.isInteger(Math.sqrt(n)) },
+]
+function numberSentence(yes) {
+  const kind = randInt(0, 2)
+  if (kind === 0) {
+    const P = choice(PROPS)
+    if (!yes) return { s: `The integer ${choice(['n', 'k', 'm'])} is ${P.say}.`, why: 'the letter is a free variable: true for some values, false for others, so this is an open sentence' }
+    const n = randInt(2, 60)
+    return { s: `The integer ${n} is ${P.say}.`, why: `declarative and ${P.test(n) ? 'true' : 'false'}${P.test(n) ? '' : ': false statements are still statements'}` }
+  }
+  if (kind === 1) {
+    const a = randInt(2, 12)
+    const b = randInt(2, 12)
+    const c = a + b + choice([0, 0, 1, -1, 2])
+    if (!yes) return { s: `x + ${a} = ${c + 3}.`, why: `true for x = ${c + 3 - a} and false otherwise: an open sentence` }
+    return { s: `${a} + ${b} = ${c}.`, why: `declarative and ${a + b === c ? 'true' : 'false'}${a + b === c ? '' : ': false statements are still statements'}` }
+  }
+  const k = randInt(2, 9)
+  if (!yes) return { s: `${choice(['n', 'k', 'm'])} is a multiple of ${k}.`, why: 'the letter is a free variable, so this is an open sentence' }
+  const n = randInt(10, 99)
+  return { s: `${n} is a multiple of ${k}.`, why: `declarative and ${n % k === 0 ? 'true' : 'false'}${n % k === 0 ? '' : ': false statements are still statements'}` }
+}
 
 // Open sentences P(n) over the positive integers.
 const PREDICATES = [
@@ -73,7 +126,7 @@ export default {
       id: 'is-statement',
       generate() {
         const yes = Math.random() < 0.5
-        const item = choice(yes ? STATEMENTS : NOT_STATEMENTS)
+        const item = Math.random() < 0.3 ? numberSentence(yes) : choice(yes ? STATEMENTS : NOT_STATEMENTS)
         return {
           ask: 'Is this a statement?',
           text: `"${item.s}"`,

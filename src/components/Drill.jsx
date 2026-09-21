@@ -6,7 +6,7 @@ import { createSession } from '../engine/drill.js'
 import { checkAnswer } from '../engine/check.js'
 import { buildChoices } from '../engine/choices.js'
 import { recordAnswer, recordPage } from '../engine/stats.js'
-import { pickWeightedTopic, randomTemplate } from '../engine/pick.js'
+import { pickWeightedTopic, createFreshPicker } from '../engine/pick.js'
 
 const SET_SIZE = 20
 
@@ -31,15 +31,14 @@ function savePref(key, value) {
 }
 
 export default function Drill({ cls, topic, unit, onExit }) {
-  const session = useMemo(
-    () =>
-      createSession(() => {
-        const pool = topic ? [topic] : unit ? unit.topics : cls.units.flatMap(u => u.topics)
-        const t = topic ?? pickWeightedTopic(cls.id, pool)
-        return { topicId: t.id, topicName: t.name, ...randomTemplate(t).generate() }
-      }),
-    [cls, topic, unit],
-  )
+  const session = useMemo(() => {
+    const fresh = createFreshPicker()
+    return createSession(() => {
+      const pool = topic ? [topic] : unit ? unit.topics : cls.units.flatMap(u => u.topics)
+      const t = topic ?? pickWeightedTopic(cls.id, pool)
+      return { topicId: t.id, topicName: t.name, ...fresh(t) }
+    })
+  }, [cls, topic, unit])
 
   const [current, setCurrent] = useState(() => session.next())
   const [input, setInput] = useState('')

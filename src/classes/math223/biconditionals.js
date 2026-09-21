@@ -11,7 +11,19 @@ const CLAUSES = [
   { a: 'x > 3', na: 'x ≤ 3', b: 'x² > 9', nb: 'x² ≤ 9' },
   { a: 'the figure is a square', na: 'the figure is not a square', b: 'the figure is a rectangle', nb: 'the figure is not a rectangle' },
   { a: 'John studies', na: 'John does not study', b: 'John passes the exam', nb: 'John does not pass the exam' },
+  { a: 'n is divisible by 6', na: 'n is not divisible by 6', b: 'n is divisible by 3', nb: 'n is not divisible by 3' },
+  { a: 'the triangle is equilateral', na: 'the triangle is not equilateral', b: 'the triangle is isosceles', nb: 'the triangle is not isosceles' },
+  { a: 'Maria finishes her homework', na: 'Maria does not finish her homework', b: 'Maria watches a movie', nb: 'Maria does not watch a movie' },
+  { a: 'the function is differentiable', na: 'the function is not differentiable', b: 'the function is continuous', nb: 'the function is not continuous' },
+  { a: 'x = 2', na: 'x ≠ 2', b: 'x² = 4', nb: 'x² ≠ 4' },
+  { a: 'the store is open', na: 'the store is closed', b: 'the lights are on', nb: 'the lights are off' },
+  { a: 'ab is odd', na: 'ab is even', b: 'a is odd', nb: 'a is even' },
+  { a: 'Tom is in Hammond', na: 'Tom is not in Hammond', b: 'Tom is in Louisiana', nb: 'Tom is not in Louisiana' },
+  { a: 'the alarm rings', na: 'the alarm does not ring', b: 'the dog barks', nb: 'the dog does not bark' },
+  { a: 'A ⊆ B', na: 'A ⊈ B', b: 'A ∩ B = A', nb: 'A ∩ B ≠ A' },
 ]
+// Sentence case, except a leading math variable (x, n, ab, A) stays as written.
+const cap = s => (/^[a-z]{1,2}[ ²]/.test(s) && !/^(it|he|we) /.test(s) ? s : s.charAt(0).toUpperCase() + s.slice(1))
 
 const lit = (name, neg) => (neg ? NOT(V(name)) : V(name))
 
@@ -25,6 +37,12 @@ const IFF_BANK = [
   { P: 'n \\text{ is even}', Q: 'n \\text{ is a multiple of } 4', p: n => n % 2 === 0, q: n => n % 4 === 0 },
   { P: '2n + 1 \\text{ is prime}', Q: 'n \\text{ is even}', p: n => isPrime(2 * n + 1), q: n => n % 2 === 0 },
   { P: 'n^2 - n \\text{ is even}', Q: 'n < 10', p: n => (n * n - n) % 2 === 0, q: n => n < 10 },
+  { P: 'n \\text{ is odd}', Q: 'n^2 \\text{ is odd}', p: n => n % 2 === 1, q: n => (n * n) % 2 === 1 },
+  { P: 'n \\text{ is prime}', Q: '2n + 1 \\text{ is prime}', p: n => isPrime(n), q: n => isPrime(2 * n + 1) },
+  { P: 'n \\text{ is a multiple of } 4', Q: 'n^2 \\text{ is a multiple of } 4', p: n => n % 4 === 0, q: n => (n * n) % 4 === 0 },
+  { P: '3n + 1 \\text{ is even}', Q: 'n \\text{ is odd}', p: n => (3 * n + 1) % 2 === 0, q: n => n % 2 === 1 },
+  { P: 'n \\text{ is a perfect square}', Q: 'n \\text{ is odd}', p: n => Number.isInteger(Math.sqrt(n)), q: n => n % 2 === 1 },
+  { P: 'n^2 > 8', Q: 'n \\text{ is prime}', p: n => n * n > 8, q: n => isPrime(n) },
 ]
 function isPrime(n) {
   if (!Number.isInteger(n) || n < 2) return false
@@ -112,11 +130,12 @@ export default {
         if (Math.random() < 0.5) {
           const sP = Math.random() < 0.4
           const sQ = Math.random() < 0.4
-          const f = IMP(lit('P', sP), lit('Q', sQ))
-          const conv = IMP(lit('Q', sQ), lit('P', sP))
-          const inverse = IMP(lit('P', !sP), lit('Q', !sQ))
-          const contra = IMP(lit('Q', !sQ), lit('P', !sP))
-          const other = IMP(lit('Q', !sQ), lit('P', sP))
+          const [A, B] = shuffle(['P', 'Q', 'R', 'S'])
+          const f = IMP(lit(A, sP), lit(B, sQ))
+          const conv = IMP(lit(B, sQ), lit(A, sP))
+          const inverse = IMP(lit(A, !sP), lit(B, !sQ))
+          const contra = IMP(lit(B, !sQ), lit(A, !sP))
+          const other = IMP(lit(B, !sQ), lit(A, sP))
           return withOptions(
             {
               ask: 'Which is the converse?',
@@ -130,8 +149,10 @@ export default {
             [inverse, contra, other].map(x => ({ latex: toLatex(x) })),
           )
         }
-        const c = choice(CLAUSES)
-        const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
+        // either clause can be the hypothesis: a converse is a swap whether or
+        // not the original is true
+        const pick = choice(CLAUSES)
+        const c = Math.random() < 0.5 ? pick : { a: pick.b, na: pick.nb, b: pick.a, nb: pick.na }
         const ok = `If ${c.b}, then ${c.a}.`
         const bad = [`If ${c.na}, then ${c.nb}.`, `If ${c.nb}, then ${c.na}.`, `${cap(c.a)} if and only if ${c.b}.`]
         return withOptions(
@@ -154,7 +175,7 @@ export default {
       id: 'iff-domain',
       generate() {
         const item = choice(IFF_BANK)
-        const S = choice([[1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 5], [2, 3, 4, 5, 6]])
+        const S = choice([[1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 5], [2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6], [3, 4, 5, 6, 7], [2, 4, 6, 8], [1, 3, 5, 7, 9], [4, 5, 6, 7, 8, 9]])
         const truth = n => item.p(n) === item.q(n)
         const phrase = choice([
           `A necessary and sufficient condition for ${plain(item.P)} is that ${plain(item.Q)}.`,
