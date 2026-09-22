@@ -12,6 +12,7 @@ import biconditionals from './biconditionals.js'
 import tautologies from './tautologies.js'
 import equivalence from './equivalence.js'
 import quantifiers from './quantifiers.js'
+import review from './review.js'
 
 export default {
   id: 'math223',
@@ -37,6 +38,7 @@ export default {
         tautologies,
         equivalence,
         quantifiers,
+        review,
       ],
     },
   ],

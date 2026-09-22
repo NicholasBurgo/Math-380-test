@@ -1184,11 +1184,11 @@ export const derive = {
     if (p.text) return bankLetter(p, NEGATIONS, quoted(p.text))
     return bankLetter(p, NEG_SYMBOLIC, p.latex)
   },
-  'biconditionals/iff-direction'(p) {
+  'review/iff-direction'(p) {
     const { mean } = sayMean(p.text)
     return letterOf(p, o => o === SAY_FORM[mean])
   },
-  'biconditionals/iff-split'(p) {
+  'review/iff-split'(p) {
     if (p.text.startsWith('P: ')) {
       const { X, Y, mean } = sayMean(p.text)
       if (mean !== 'iff') throw new Error('a one-way phrasing was split into two implications')
@@ -1204,7 +1204,7 @@ export const derive = {
     const want = `${A} if and only if ${B}.`.toLowerCase()
     return letterOf(p, o => o.toLowerCase() === want)
   },
-  'quantifiers/proof-shape'(p) {
+  'review/proof-shape'(p) {
     const f = INFINITE[p.latex]
     if (!f) throw new Error(`unknown statement ${p.latex}`)
     const univ = p.latex.startsWith('\\forall')
@@ -1212,7 +1212,7 @@ export const derive = {
     const key = univ ? (v ? 'forallTrue' : 'forallFalse') : (v ? 'existsTrue' : 'existsFalse')
     return letterOf(p, o => o === STRATEGY[key])
   },
-  'quantifiers/critique'(p) {
+  'review/critique'(p) {
     const m = p.text.match(/ Solution: "(.+)"$/)
     if (!m) throw new Error(`cannot parse "${p.text}"`)
     return bankLetter(p, CRITIQUE, m[1])

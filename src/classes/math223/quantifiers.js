@@ -18,7 +18,7 @@ const PREDS = [
 ]
 
 // Statements over infinite domains with a known verdict (notes + book).
-const INFINITE = [
+export const INFINITE = [
   { latex: '\\forall x \\in \\mathbb{R},\\ x^4 \\ge x', ok: false, why: 'x = 1/2 gives 1/16 ≥ 1/2, which is false' },
   { latex: '\\forall A \\in \\mathcal{P}(\\{a, b\\}),\\ |A \\cup \\{c\\}| \\ge 1', ok: true, why: 'A ∪ {c} always contains c, so it has at least one element' },
   { latex: '\\forall x \\in \\mathbb{R},\\ -x^2 + 5x - 2 < 5', ok: true, why: 'the parabola peaks at x = 5/2 with value 4.25 < 5' },
@@ -123,111 +123,6 @@ const NEG_SYMBOLIC = [
   { s: '\\sim(\\exists x \\in D \\text{ such that } \\sim P(x))', ok: '\\forall x \\in D,\\ P(x)', bad: ['\\exists x \\in D \\text{ such that } P(x)', '\\forall x \\in D,\\ \\sim P(x)', '\\sim \\forall x \\in D,\\ P(x)'] },
 ]
 
-// What a correct write-up looks like. A universal claim is proved for an
-// arbitrary element and killed by one counterexample; an existential claim is
-// proved by one witness and killed only by ruling out the whole domain.
-const STRATEGIES = {
-  forallTrue: 'Let x be an arbitrary element of the domain, then show the claim holds for it.',
-  forallFalse: 'Exhibit one element of the domain where the claim fails, and verify it.',
-  existsTrue: 'Exhibit one element of the domain where the claim holds, and verify it.',
-  existsFalse: 'Show that the claim fails for every element of the domain.',
-}
-
-// "Criticize the following solutions" (§2.10 notes). Some of these are correct:
-// the drill is judging the write-up, not assuming it is broken.
-const CRITIQUE = [
-  {
-    claim: 'For all real numbers x, if x(x + 1) > 0, then x > 0.',
-    sol: 'Let x ∈ R. Then x = −2. Since (−2)(−1) = 2 > 0 and −2 is not greater than 0, the statement is false.',
-    ok: '"Let x ∈ R" makes x arbitrary, so the next line cannot force x = −2. A counterexample opens with "Consider x = −2".',
-    bad: [
-      'Nothing is wrong with the solution.',
-      '−2 is not in the domain, since the claim is about real numbers.',
-      'The arithmetic is wrong: (−2)(−1) = −2.',
-    ],
-  },
-  {
-    claim: 'For all real numbers x, if x(x + 1) > 0, then x > 0.',
-    sol: 'Let x = −2 which is ∈ Z. Then x(x + 1) > 0 = (−2)(−2 + 1) > 0 = 2 > 0.',
-    ok: 'Equals signs are chaining whole inequalities together, and it never states that −2 fails the conclusion or that the claim is false.',
-    bad: [
-      'Nothing is wrong with the solution.',
-      'The claim is true, so no counterexample can exist.',
-      'A counterexample has to satisfy the conclusion as well as the hypothesis.',
-    ],
-  },
-  {
-    claim: 'There exists a positive integer x such that 4x⁴ − 124x³ = 0.',
-    sol: 'Let 4x⁴ − 124x³ = 0. So 4x³(x − 31) = 0. So x = 0 or x = 31. So it is true.',
-    ok: 'It assumes the equation it was asked to satisfy. That is scratch work: the proof should name x = 31, say it is a positive integer, and verify it.',
-    bad: [
-      'Nothing is wrong with the solution.',
-      'The factoring is wrong: 4x⁴ − 124x³ = 4x³(x − 124).',
-      'An existence claim needs every positive integer checked.',
-    ],
-  },
-  {
-    claim: 'There exists w ∈ {1, 3, 4, 6} such that w² − 2w + 2 = 0.',
-    sol: 'Let w ∈ {1, 3, 4, 6}. Plugging w into the formula does not work, so the result is false by exhaustion.',
-    ok: 'Exhaustion means showing all four computations in writing. "Does not work" is a claim, not a computation.',
-    bad: [
-      'Nothing is wrong with the solution.',
-      'Exhaustion is never a valid way to settle a statement.',
-      'The domain is infinite, so exhaustion cannot be used here.',
-    ],
-  },
-  {
-    claim: 'There exist integers x and y such that x² + y² = 25.',
-    sol: 'Consider −5 and 0 ∈ Z. Then x² + y² = (−5)² + 0² = 25. The result now follows.',
-    ok: 'Nothing is wrong with the solution.',
-    bad: [
-      'x must be positive, so −5 is not allowed.',
-      'One pair is not enough to settle an existence claim.',
-      'It never checks the pair (3, 4), which also works.',
-    ],
-  },
-  {
-    claim: 'For every integer n, n² ≥ n.',
-    sol: 'Let n = 4. Then 16 ≥ 4, so the statement is true.',
-    ok: 'One example never proves a universal claim. The argument has to work for an arbitrary integer n.',
-    bad: [
-      'Nothing is wrong with the solution.',
-      'The claim is false, so no proof of it exists.',
-      'n = 4 is not in the domain of the statement.',
-    ],
-  },
-  {
-    claim: 'For every real number x, x² ≥ x.',
-    sol: 'Let x be an arbitrary real number. Then x² ≥ x, since squaring makes a number bigger.',
-    ok: 'The claim is false (x = 1/2 gives 1/4 < 1/2), and "squaring makes a number bigger" is an unjustified step rather than a proof.',
-    bad: [
-      'Nothing is wrong with the solution.',
-      'An arbitrary x is not allowed when proving a universal statement.',
-      'The proof is fine but should close with "as required".',
-    ],
-  },
-  {
-    claim: 'There exists n ∈ {2, 4, 6} such that n² = 16.',
-    sol: 'Consider n = 4, which is in {2, 4, 6}. Then n² = 16, as required.',
-    ok: 'Nothing is wrong with the solution.',
-    bad: [
-      'A witness has to be the smallest element that works.',
-      'n = 2 and n = 6 have to be checked as well.',
-      'n² = 16 has two solutions, so n = 4 alone is not enough.',
-    ],
-  },
-  {
-    claim: 'For every integer n, if n is odd, then n² is odd.',
-    sol: 'Let n be an odd integer, so n = 2k + 1 for some integer k. Then n² = 2(2k² + 2k) + 1, which is odd.',
-    ok: 'Nothing is wrong with the solution.',
-    bad: [
-      'Writing n = 2k + 1 assumes what is being proved.',
-      'It should test n = 1, 3, 5 before claiming the general case.',
-      'A universal statement cannot be proved without a counterexample check.',
-    ],
-  },
-]
-
 export default {
   id: 'quantifiers',
   name: 'Quantified statements',
@@ -247,8 +142,6 @@ export default {
       'Over R, look for counterexamples near the boundaries: fractions between 0 and 1, negatives, and 0 itself break many "obvious" inequalities.',
       'Negation: flip ∀ to ∃ (or ∃ to ∀) and negate the inside. "All A are B" becomes "some A is not B".',
       'Negating "for all x, if P(x) then Q(x)": there is an x with P(x) true and Q(x) false. Never negate it into another if-then.',
-      'Writing it up: "Let x be arbitrary" means x stays general, so you cannot hand it a value two lines later. A counterexample or a witness opens with "Consider x = ..." and then verifies it.',
-      'A proof ends with a sentence, not a number, and "=" joins numbers, never whole statements.',
     ],
   },
   templates: [
@@ -351,49 +244,6 @@ export default {
             hint: {
               latex: '\\sim(\\forall x,\\ P(x) \\Rightarrow Q(x)) \\equiv \\exists x,\\ P(x) \\wedge \\sim Q(x)',
               text: `Negation: "${item.ok}". Flip the quantifier (all ↔ some) and negate the claim inside; an if-then inside becomes "P and not Q".`,
-            },
-          },
-          item.ok,
-          item.bad,
-        )
-      },
-    },
-    {
-      id: 'proof-shape',
-      generate() {
-        const item = choice(INFINITE)
-        const univ = item.latex.startsWith('\\forall')
-        const key = univ ? (item.ok ? 'forallTrue' : 'forallFalse') : (item.ok ? 'existsTrue' : 'existsFalse')
-        return withOptions(
-          {
-            ask: 'Which proof would you write?',
-            latex: item.latex,
-            size: 'small',
-            hint: {
-              latex: '\\forall: \\text{ arbitrary element or one counterexample} \\quad \\exists: \\text{ one witness or rule out the domain}',
-              text: `The statement is ${item.ok ? 'true' : 'false'}, since ${item.why}. ${STRATEGIES[key]}`,
-            },
-          },
-          STRATEGIES[key],
-          Object.keys(STRATEGIES).filter(k => k !== key).map(k => STRATEGIES[k]),
-        )
-      },
-    },
-    {
-      id: 'critique',
-      generate() {
-        const item = choice(CRITIQUE)
-        return withOptions(
-          {
-            ask: 'What is the problem with this solution, if any?',
-            text: `Claim: "${item.claim}" Solution: "${item.sol}"`,
-            latex: '\\text{object} + \\text{verification} + \\text{conclusion}',
-            size: 'small',
-            hint: {
-              latex: '\\text{arbitrary } x \\ne \\text{ a chosen } x',
-              text: item.ok === 'Nothing is wrong with the solution.'
-                ? 'This one is correct: it names an object in the domain, verifies the claim on it, and concludes in words.'
-                : item.ok,
             },
           },
           item.ok,
