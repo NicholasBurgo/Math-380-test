@@ -25,6 +25,32 @@ const CLAUSES = [
 // Sentence case, except a leading math variable (x, n, ab, A) stays as written.
 const cap = s => (/^[a-z]{1,2}[ ²]/.test(s) && !/^(it|he|we) /.test(s) ? s : s.charAt(0).toUpperCase() + s.slice(1))
 
+// Sentence shapes for a pair of clauses P and Q, and what each one means.
+// "if" points backward, "only if" points forward, "if and only if" is both.
+const MEANINGS = [
+  { make: (P, Q) => `${cap(P)} if and only if ${Q}.`, mean: 'iff' },
+  { make: (P, Q) => `${cap(P)} iff ${Q}.`, mean: 'iff' },
+  { make: (P, Q) => `In order that ${P}, it is necessary and sufficient that ${Q}.`, mean: 'iff' },
+  { make: (P, Q) => `The statement that ${P} is equivalent to the statement that ${Q}.`, mean: 'iff' },
+  { make: (P, Q) => `${cap(P)} precisely when ${Q}.`, mean: 'iff' },
+  { make: (P, Q) => `${cap(P)} only if ${Q}.`, mean: 'forward' },
+  { make: (P, Q) => `In order that ${Q}, it is sufficient that ${P}.`, mean: 'forward' },
+  { make: (P, Q) => `${cap(P)} if ${Q}.`, mean: 'backward' },
+  { make: (P, Q) => `In order that ${Q}, it is necessary that ${P}.`, mean: 'backward' },
+]
+const IFF_SAYS = MEANINGS.filter(m => m.mean === 'iff')
+const FORMS = {
+  forward: 'P \\Rightarrow Q',
+  backward: 'Q \\Rightarrow P',
+  iff: 'P \\Leftrightarrow Q',
+  inverse: '\\sim P \\Rightarrow \\sim Q',
+}
+const WHY = {
+  iff: 'Both directions. "if and only if", "iff", "equivalent", "precisely when", and "necessary and sufficient" all mean P ⇔ Q.',
+  forward: 'One direction, forward. "P only if Q" and "P is sufficient for Q" both mean P ⇒ Q.',
+  backward: 'One direction, backward. "P if Q" and "P is necessary for Q" both mean Q ⇒ P.',
+}
+
 const lit = (name, neg) => (neg ? NOT(V(name)) : V(name))
 
 // P(n) ⇔ Q(n) over a small domain (Exercise 41 style).
@@ -76,6 +102,8 @@ export default {
       'Do ⇔ last, after ~, ∧, ∨, and ⇒.',
       '"Necessary and sufficient" and "if and only if" both mean ⇔.',
       'Over a domain: evaluate P(n) and Q(n) for each n and keep the n where they agree.',
+      '"P if Q" is Q ⇒ P and "P only if Q" is P ⇒ Q: the two halves point opposite ways, which is why joining them gives ⇔.',
+      'To prove P ⇔ Q you owe two proofs, one for each direction, labelled (⇒) and (⇐).',
     ],
   },
   templates: [
@@ -216,6 +244,67 @@ export default {
             text: `Make a row for each n: P(n) true/false, Q(n) true/false. Keep the n where they match: ${hits.length ? hits.join(', ') : 'none'}.`,
           },
         }
+      },
+    },
+    {
+      id: 'iff-direction',
+      generate() {
+        const pick = choice(CLAUSES)
+        const c = Math.random() < 0.5 ? pick : { a: pick.b, na: pick.nb, b: pick.a, nb: pick.na }
+        const ph = choice(MEANINGS)
+        return withOptions(
+          {
+            ask: 'Which symbolic form is it?',
+            text: `P: ${c.a}. Q: ${c.b}. "${ph.make(c.a, c.b)}"`,
+            latex: 'P \\Rightarrow Q \\qquad Q \\Rightarrow P \\qquad P \\Leftrightarrow Q',
+            size: 'small',
+            hint: {
+              latex: 'P \\text{ if } Q: \; Q \\Rightarrow P \\qquad P \\text{ only if } Q: \; P \\Rightarrow Q',
+              text: WHY[ph.mean],
+            },
+          },
+          { latex: FORMS[ph.mean] },
+          Object.keys(FORMS).filter(k => k !== ph.mean).map(k => ({ latex: FORMS[k] })),
+        )
+      },
+    },
+    {
+      id: 'iff-split',
+      generate() {
+        const pick = choice(CLAUSES)
+        const c = Math.random() < 0.5 ? pick : { a: pick.b, na: pick.nb, b: pick.a, nb: pick.na }
+        const [X, Y, nX, nY] = [c.a, c.b, c.na, c.nb]
+        if (Math.random() < 0.55) {
+          const ph = choice(IFF_SAYS)
+          return withOptions(
+            {
+              ask: 'Which pair of implications is this?',
+              text: `P: ${X}. Q: ${Y}. "${ph.make(X, Y)}"`,
+              latex: 'P \\Leftrightarrow Q \;=\; (P \\Rightarrow Q) \\wedge (Q \\Rightarrow P)',
+              size: 'small',
+              hint: {
+                latex: '(P \\Rightarrow Q) \\wedge (Q \\Rightarrow P)',
+                text: `A biconditional is both directions, so it splits into "If ${X}, then ${Y}" and its converse "If ${Y}, then ${X}". One arrow alone is not enough.`,
+              },
+            },
+            `If ${X}, then ${Y}; and if ${Y}, then ${X}.`,
+            [`If ${X}, then ${Y}.`, `If ${Y}, then ${X}.`, `If ${nX}, then ${nY}; and if ${nY}, then ${nX}.`],
+          )
+        }
+        return withOptions(
+          {
+            ask: 'Which single sentence says both?',
+            text: `"If ${X}, then ${Y}." and "If ${Y}, then ${X}."`,
+            latex: '(P \\Rightarrow Q) \\wedge (Q \\Rightarrow P) \;=\; P \\Leftrightarrow Q',
+            size: 'small',
+            hint: {
+              latex: 'P \\Leftrightarrow Q',
+              text: 'An implication together with its converse is exactly a biconditional: "if and only if". A one-way phrase like "only if" or "sufficient for" keeps just one arrow.',
+            },
+          },
+          `${cap(X)} if and only if ${Y}.`,
+          [`${cap(X)} only if ${Y}.`, `${cap(X)} if ${Y}.`, `In order that ${Y}, it is sufficient that ${X}.`],
+        )
       },
     },
   ],

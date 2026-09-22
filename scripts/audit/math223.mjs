@@ -728,6 +728,64 @@ function isPartitionOfZ(optionLatex) {
 }
 
 // ---------- the checkers ----------
+// Biconditional phrasings, re-listed by hand: the sentence shape fixes the
+// direction of the arrow, so a miswired phrasing is caught here.
+const SAY = [
+  { make: (P, Q) => `${P} if and only if ${Q}.`, mean: 'iff' },
+  { make: (P, Q) => `${P} iff ${Q}.`, mean: 'iff' },
+  { make: (P, Q) => `In order that ${P}, it is necessary and sufficient that ${Q}.`, mean: 'iff' },
+  { make: (P, Q) => `The statement that ${P} is equivalent to the statement that ${Q}.`, mean: 'iff' },
+  { make: (P, Q) => `${P} precisely when ${Q}.`, mean: 'iff' },
+  { make: (P, Q) => `${P} only if ${Q}.`, mean: 'forward' },
+  { make: (P, Q) => `In order that ${Q}, it is sufficient that ${P}.`, mean: 'forward' },
+  { make: (P, Q) => `${P} if ${Q}.`, mean: 'backward' },
+  { make: (P, Q) => `In order that ${Q}, it is necessary that ${P}.`, mean: 'backward' },
+]
+const SAY_FORM = {
+  forward: 'P \\Rightarrow Q',
+  backward: 'Q \\Rightarrow P',
+  iff: 'P \\Leftrightarrow Q',
+  inverse: '\\sim P \\Rightarrow \\sim Q',
+}
+// The single phrasing that produced this sentence, and the clauses it used.
+function sayMean(text) {
+  const m = text.match(/^P: (.+?)\. Q: (.+?)\. "(.+)"$/)
+  if (!m) throw new Error(`cannot parse "${text}"`)
+  const [, X, Y, sentence] = m
+  const hit = SAY.filter(s => s.make(X, Y).toLowerCase() === sentence.toLowerCase())
+  if (hit.length !== 1) throw new Error(`${hit.length} phrasings match "${sentence}"`)
+  return { X, Y, mean: hit[0].mean }
+}
+
+const STRATEGY = {
+  forallTrue: 'Let x be an arbitrary element of the domain, then show the claim holds for it.',
+  forallFalse: 'Exhibit one element of the domain where the claim fails, and verify it.',
+  existsTrue: 'Exhibit one element of the domain where the claim holds, and verify it.',
+  existsFalse: 'Show that the claim fails for every element of the domain.',
+}
+
+// Diagnosis for each written-up solution, keyed by the solution itself.
+const CRITIQUE = {
+  'Let x ∈ R. Then x = −2. Since (−2)(−1) = 2 > 0 and −2 is not greater than 0, the statement is false.':
+    '"Let x ∈ R" makes x arbitrary, so the next line cannot force x = −2. A counterexample opens with "Consider x = −2".',
+  'Let x = −2 which is ∈ Z. Then x(x + 1) > 0 = (−2)(−2 + 1) > 0 = 2 > 0.':
+    'Equals signs are chaining whole inequalities together, and it never states that −2 fails the conclusion or that the claim is false.',
+  'Let 4x⁴ − 124x³ = 0. So 4x³(x − 31) = 0. So x = 0 or x = 31. So it is true.':
+    'It assumes the equation it was asked to satisfy. That is scratch work: the proof should name x = 31, say it is a positive integer, and verify it.',
+  'Let w ∈ {1, 3, 4, 6}. Plugging w into the formula does not work, so the result is false by exhaustion.':
+    'Exhaustion means showing all four computations in writing. "Does not work" is a claim, not a computation.',
+  'Consider −5 and 0 ∈ Z. Then x² + y² = (−5)² + 0² = 25. The result now follows.':
+    'Nothing is wrong with the solution.',
+  'Let n = 4. Then 16 ≥ 4, so the statement is true.':
+    'One example never proves a universal claim. The argument has to work for an arbitrary integer n.',
+  'Let x be an arbitrary real number. Then x² ≥ x, since squaring makes a number bigger.':
+    'The claim is false (x = 1/2 gives 1/4 < 1/2), and "squaring makes a number bigger" is an unjustified step rather than a proof.',
+  'Consider n = 4, which is in {2, 4, 6}. Then n² = 16, as required.':
+    'Nothing is wrong with the solution.',
+  'Let n be an odd integer, so n = 2k + 1 for some integer k. Then n² = 2(2k² + 2k) + 1, which is odd.':
+    'Nothing is wrong with the solution.',
+}
+
 export const derive = {
   'describe/membership'(p) {
     if (p.text) {
@@ -1125,6 +1183,39 @@ export const derive = {
   'quantifiers/negate-quantified'(p) {
     if (p.text) return bankLetter(p, NEGATIONS, quoted(p.text))
     return bankLetter(p, NEG_SYMBOLIC, p.latex)
+  },
+  'biconditionals/iff-direction'(p) {
+    const { mean } = sayMean(p.text)
+    return letterOf(p, o => o === SAY_FORM[mean])
+  },
+  'biconditionals/iff-split'(p) {
+    if (p.text.startsWith('P: ')) {
+      const { X, Y, mean } = sayMean(p.text)
+      if (mean !== 'iff') throw new Error('a one-way phrasing was split into two implications')
+      const want = `if ${X}, then ${Y}; and if ${Y}, then ${X}.`.toLowerCase()
+      return letterOf(p, o => o.toLowerCase() === want)
+    }
+    const m = p.text.match(/^"If (.+?), then (.+?)\." and "If (.+?), then (.+?)\."$/)
+    if (!m) throw new Error(`cannot parse "${p.text}"`)
+    const [, A, B, C, D] = m
+    if (A.toLowerCase() !== D.toLowerCase() || B.toLowerCase() !== C.toLowerCase()) {
+      throw new Error('the two implications are not converses of each other')
+    }
+    const want = `${A} if and only if ${B}.`.toLowerCase()
+    return letterOf(p, o => o.toLowerCase() === want)
+  },
+  'quantifiers/proof-shape'(p) {
+    const f = INFINITE[p.latex]
+    if (!f) throw new Error(`unknown statement ${p.latex}`)
+    const univ = p.latex.startsWith('\\forall')
+    const v = f()
+    const key = univ ? (v ? 'forallTrue' : 'forallFalse') : (v ? 'existsTrue' : 'existsFalse')
+    return letterOf(p, o => o === STRATEGY[key])
+  },
+  'quantifiers/critique'(p) {
+    const m = p.text.match(/ Solution: "(.+)"$/)
+    if (!m) throw new Error(`cannot parse "${p.text}"`)
+    return bankLetter(p, CRITIQUE, m[1])
   },
 }
 
