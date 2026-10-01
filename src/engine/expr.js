@@ -317,9 +317,11 @@ export function toLatex(src, vars) {
 
 // ---------- grading ----------
 
+// Relative agreement: a wrong formula can't hide where the values are tiny
+// (a pdf far out in its tail), only floating-point noise is forgiven.
 function close(a, b, tol) {
   if (!Number.isFinite(a) || !Number.isFinite(b)) return Number.isNaN(a) === Number.isNaN(b) && a === b
-  return Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b))
+  return Math.abs(a - b) <= tol * Math.max(Math.abs(a), Math.abs(b)) + 1e-14
 }
 
 // Do two formulas agree at every sample point?

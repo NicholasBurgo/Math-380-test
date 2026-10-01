@@ -5,12 +5,22 @@ import geometric from './geometric.js'
 import geometricDerive from './geometric-derive.js'
 import mgf from './mgf.js'
 import binomial from './binomial.js'
+import binomialTable from './binomial-table.js'
+import negativeBinomial from './negative-binomial.js'
 import hypergeometric from './hypergeometric.js'
 import poisson from './poisson.js'
 import discreteDerive from './discrete-derive.js'
+import whichDiscrete from './which-discrete.js'
 import continuousPdf from './continuous-pdf.js'
+import continuousCdf from './continuous-cdf.js'
+import uniform from './uniform.js'
+import continuousExpectation from './continuous-expectation.js'
+import continuousMgf from './continuous-mgf.js'
 import gamma from './gamma.js'
 import exponential from './exponential.js'
+import chiSquared from './chi-squared.js'
+import normalTable from './normal-table.js'
+import normalApps from './normal-apps.js'
 
 export default {
   id: 'test2',
@@ -21,12 +31,22 @@ export default {
     geometricDerive,
     mgf,
     binomial,
+    binomialTable,
+    negativeBinomial,
     hypergeometric,
     poisson,
     discreteDerive,
+    whichDiscrete,
     continuousPdf,
+    continuousCdf,
+    uniform,
+    continuousExpectation,
+    continuousMgf,
     gamma,
     exponential,
+    chiSquared,
+    normalTable,
+    normalApps,
   ],
 
   // The study guide's "Be able to" list, each line pointing at the topics that drill it.

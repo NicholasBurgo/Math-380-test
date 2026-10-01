@@ -45,21 +45,16 @@ const FREE = [
 const box = (points, rest, opts) =>
   formula({ vars: VARS, points, placeholder: 'formula in n, x, p, q, r, N, k', size: 'derivation', ...opts, ...rest })
 
-const BIN_LINES = [
-  'f(x) &= P(\\text{exactly } x \\text{ successes in } n \\text{ trials})',
-  'P(\\underbrace{S \\cdots S}_{x}\\,\\underbrace{F \\cdots F}_{n-x}) &= p^xq^{n-x}',
-  '\\#\\{\\text{orders of } x \\text{ S and } n - x \\text{ F}\\} &= \\binom{n}{x}',
-]
+// one particular order of x successes and n - x failures
+const ORDER = 'P(\\underbrace{S \\cdots S}_{x}\\,\\underbrace{F \\cdots F}_{n-x})'
+const BIN_LINES = [`${ORDER} &= p^xq^{n-x}`, '\\text{number of orders} &= \\binom{n}{x}']
 const BIN_SUM = '\\sum_{x=0}^{n} f(x) &= \\sum_{x=0}^{n} \\binom{n}{x}p^xq^{n-x}'
-const NEG_LINES = [
-  'f(x) &= P(\\text{the } r\\text{th success is on trial } x)',
-  '&= P(r - 1 \\text{ successes in trials } 1, \\ldots, x - 1) \\cdot P(S \\text{ on trial } x)',
-  '&= \\binom{x-1}{r-1}p^{r-1}q^{x-r} \\cdot p',
-]
-const HYP_LINES = [
-  '\\#\\{\\text{samples of } n \\text{ from } N\\} &= \\binom{N}{n}',
-  '\\#\\{\\text{samples with } x \\text{ successes}\\} &= \\binom{r}{x}\\binom{N-r}{n-x}',
-]
+// A = the first x - 1 trials hold exactly r - 1 successes, B = trial x is a success
+const NEG_LINES = ['f(x) &= P(A)\\,P(B)', 'P(A) &= \\binom{x-1}{r-1}p^{r-1}q^{x-r}', 'P(B) &= p']
+const NEG_ASK =
+  'X is the trial of the r-th success: A = the first x − 1 trials hold exactly r − 1 successes, and B = trial x is a success.'
+const HYP_LINES = ['\\#\\,\\text{samples} &= \\binom{N}{n}', '\\#\\,\\text{favorable} &= \\binom{r}{x}\\binom{N-r}{n-x}']
+const HYP_ASK = 'A sample of n is drawn without replacement from N items, r of them successes. Favorable samples hold exactly x successes.'
 const POI_LINES = [
   '\\sum_{x=0}^{\\infty} f(x) &= \\sum_{x=0}^{\\infty} \\frac{e^{-k}k^x}{x!}',
   '&= e^{-k}\\sum_{x=0}^{\\infty} \\frac{k^x}{x!}',
@@ -82,8 +77,8 @@ export default {
   description: '§3.5–3.8: derive the binomial, negative binomial and hypergeometric pdfs; show a pdf sums to 1.',
   learn: {
     formulas: [
-      { label: 'Binomial', latex: 'f(x) = \\binom{n}{x}p^xq^{n-x}, \\quad x = 0, 1, \\ldots, n' },
-      { label: 'Negative binomial', latex: 'f(x) = \\binom{x-1}{r-1}p^rq^{x-r}, \\quad x = r, r+1, \\ldots' },
+      { label: 'Binomial, x = 0, 1, …, n', latex: 'f(x) = \\binom{n}{x}p^xq^{n-x}' },
+      { label: 'Negative binomial, x = r, r + 1, …', latex: 'f(x) = \\binom{x-1}{r-1}p^rq^{x-r}' },
       { label: 'Hypergeometric', latex: 'f(x) = \\frac{\\binom{r}{x}\\binom{N-r}{n-x}}{\\binom{N}{n}}' },
       { label: 'Binomial theorem', latex: '(a+b)^n = \\sum_{k=0}^{n}\\binom{n}{k}a^kb^{n-k}' },
       { label: 'Maclaurin series', latex: 'e^z = \\sum_{k=0}^{\\infty}\\frac{z^k}{k!}' },
@@ -105,8 +100,8 @@ export default {
         return box(
           BIN,
           {
-            ask: 'X counts successes in n independent trials. Derive the pdf: what goes in the box?',
-            latex: derivation([BIN_LINES[0], `P(\\underbrace{S \\cdots S}_{x}\\,\\underbrace{F \\cdots F}_{n-x}) &= ${BOX}`]),
+            ask: 'X counts successes in n independent trials. Derive the pdf: what is the probability of one particular order?',
+            latex: derivation([`${ORDER} &= ${BOX}`]),
             hint: {
               latex: 'P(S)\\cdots P(S)\\,P(F)\\cdots P(F) = p^xq^{n-x}',
               text: 'Independent trials multiply: x factors of p for the successes, n − x factors of q for the failures.',
@@ -122,8 +117,8 @@ export default {
         return box(
           BIN,
           {
-            ask: 'Derive the binomial pdf. How many orders have exactly x successes?',
-            latex: derivation([...BIN_LINES.slice(0, 2), `\\#\\{\\text{orders of } x \\text{ S and } n - x \\text{ F}\\} &= ${BOX}`]),
+            ask: 'Derive the binomial pdf. How many orders of x successes and n − x failures are there?',
+            latex: derivation([BIN_LINES[0], `\\text{number of orders} &= ${BOX}`]),
             hint: {
               latex: '\\binom{n}{x} = \\frac{n!}{x!\\,(n-x)!}',
               text: 'An order is fixed once you choose which x of the n trial positions are successes. Order among them does not matter.',
@@ -154,10 +149,10 @@ export default {
       id: 'binom-sum',
       generate() {
         const part = choice([
-          { line: `&= (a + b)^n \\text{ with } a = ${BOX}`, answer: 'p', choices: ['q', '1', 'x'], what: 'the a of the binomial theorem' },
-          { line: `&= (a + b)^n \\text{ with } a = p,\\; b = ${BOX}`, answer: 'q', choices: ['p', 'pq', '1'], what: 'the b of the binomial theorem' },
+          { lines: ['&= (a + b)^n', `a &= ${BOX}`], answer: 'p', choices: ['q', '1', 'x'], what: 'the a of the binomial theorem' },
+          { lines: ['&= (a + b)^n', `a &= p, \\quad b = ${BOX}`], answer: 'q', choices: ['p', 'pq', '1'], what: 'the b of the binomial theorem' },
           {
-            line: `&= ${BOX} \\quad \\text{(binomial theorem)}`,
+            lines: [`&= ${BOX}`],
             answer: '(p+q)^n',
             choices: ['p^n+q^n', '(p+q)^x', '1'],
             what: 'the sum, keeping p and q as letters (before using p + q = 1)',
@@ -167,8 +162,8 @@ export default {
         return box(
           part.points ?? BIN,
           {
-            ask: `Show the binomial pdf sums to 1. Fill in ${part.what}.`,
-            latex: derivation([BIN_SUM, part.line]),
+            ask: `Show the binomial pdf sums to 1 with the binomial theorem. Fill in ${part.what}.`,
+            latex: derivation([BIN_SUM, ...part.lines]),
             hint: {
               latex: '\\sum_{x=0}^{n}\\binom{n}{x}p^xq^{n-x} = (p+q)^n = 1^n = 1',
               text: 'Match Σ C(n, k)a^k b^(n−k): the base raised to the x is a = p, the other is b = q. Then p + q = 1.',
@@ -183,7 +178,7 @@ export default {
       generate() {
         const part = choice([
           {
-            line: `&= ${BOX} \\cdot p`,
+            lines: [NEG_LINES[0], `P(A) &= ${BOX}`],
             answer: 'C(x-1,r-1)p^(r-1)q^(x-r)',
             choices: ['C(x,r)p^(r-1)q^(x-r)', 'C(x-1,r-1)p^rq^(x-r)', 'p^(r-1)q^(x-r)'],
             hint: {
@@ -192,7 +187,7 @@ export default {
             },
           },
           {
-            line: `&= \\binom{x-1}{r-1}p^{r-1}q^{x-r} \\cdot ${BOX}`,
+            lines: [...NEG_LINES.slice(0, 2), `P(B) &= ${BOX}`],
             answer: 'p',
             choices: ['q', 'p^r', '1'],
             hint: {
@@ -204,8 +199,8 @@ export default {
         return box(
           NEG,
           {
-            ask: 'X is the trial of the r-th success. Derive the negative binomial pdf: what goes in the box?',
-            latex: derivation([...NEG_LINES.slice(0, 2), part.line]),
+            ask: `${NEG_ASK} Derive the pdf: what goes in the box?`,
+            latex: derivation(part.lines),
             hint: part.hint,
           },
           { answer: part.answer, choices: part.choices },
@@ -218,8 +213,8 @@ export default {
         return box(
           NEG,
           {
-            ask: 'Derive the negative binomial pdf. Simplify: what goes in the box?',
-            latex: derivation([...NEG_LINES, `&= ${BOX}`]),
+            ask: `${NEG_ASK} Put the pieces together: what goes in the box?`,
+            latex: derivation([...NEG_LINES, `f(x) &= ${BOX}`]),
             hint: {
               latex: 'f(x) = \\binom{x-1}{r-1}p^rq^{x-r}, \\quad x = r, r+1, \\ldots',
               text: 'p^(r−1) times p is p^r. The count stays C(x − 1, r − 1): the last trial is not free to move.',
@@ -234,7 +229,7 @@ export default {
       generate() {
         const part = choice([
           {
-            lines: [`\\#\\{\\text{samples of } n \\text{ from } N\\} &= ${BOX}`],
+            lines: [`\\#\\,\\text{samples} &= ${BOX}`],
             answer: 'C(N,n)',
             choices: ['N^n', 'N!/(N-n)!', 'C(N,r)'],
             hint: {
@@ -243,7 +238,7 @@ export default {
             },
           },
           {
-            lines: [HYP_LINES[0], `\\#\\{\\text{samples with } x \\text{ successes}\\} &= ${BOX}`],
+            lines: [HYP_LINES[0], `\\#\\,\\text{favorable} &= ${BOX}`],
             answer: 'C(r,x)C(N-r,n-x)',
             choices: ['C(r,x)C(N,n-x)', 'C(r,x)+C(N-r,n-x)', 'C(r,x)C(N-r,n)'],
             hint: {
@@ -255,7 +250,7 @@ export default {
         return box(
           HYP,
           {
-            ask: 'A sample of n is drawn without replacement from N items, r of them successes. Count: what goes in the box?',
+            ask: `${HYP_ASK} Count: what goes in the box?`,
             latex: derivation(part.lines),
             hint: part.hint,
           },
@@ -269,7 +264,7 @@ export default {
         return box(
           HYP,
           {
-            ask: 'Derive the hypergeometric pdf: what goes in the box?',
+            ask: `${HYP_ASK} Derive the pdf: what goes in the box?`,
             latex: derivation([...HYP_LINES, `f(x) &= ${BOX}`]),
             hint: {
               latex: 'f(x) = \\frac{\\binom{r}{x}\\binom{N-r}{n-x}}{\\binom{N}{n}}',
@@ -345,7 +340,7 @@ export default {
             right: 'All C(N, n) samples are equally likely: favorable samples over all samples.',
           },
           {
-            step: '\\#\\{\\text{samples with } x \\text{ successes}\\} = \\binom{r}{x}\\binom{N-r}{n-x}',
+            step: '\\#\\,\\text{favorable} = \\binom{r}{x}\\binom{N-r}{n-x}',
             right: 'Multiplication rule: x of the r successes and n − x of the N − r failures.',
           },
           {
@@ -367,6 +362,8 @@ export default {
           latex: s.step,
           size: 'small',
           ...pick,
+          // the hint below spells the reason out as wrapping text; inside KaTeX it would not wrap
+          answerLatex: `\\text{(${pick.answer})}`,
           placeholder: 'a, b, c or d',
           hint: { latex: s.step, text: s.right },
         }

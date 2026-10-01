@@ -117,7 +117,7 @@ function reasonFor(step) {
   if (step.includes('= (p+q)^n')) return /binomial theorem/
   if (step.includes('= e^k')) return /Maclaurin/
   if (step.includes('\\frac{\\binom{r}{x}')) return /equally likely/
-  if (step.includes('\\text{samples with }')) return /Multiplication rule/
+  if (step.includes('\\text{favorable}')) return /Multiplication rule/
   if (step.includes('\\cdot p')) return /trial x is the r-th success/
   if (step.includes('\\ge 0')) return /all positive/
   throw new Error(`unrecognized step ${step}`)
@@ -169,13 +169,16 @@ export const derive = {
     throw new Error(`unrecognized part ${p.ask}`)
   },
   'discrete-derive/negbin-split'(p) {
-    if (p.latex.includes('\\cdot p')) return confirmFormula(p, negFirst, NEG)
-    return confirmFormula(p, e => negAll(e) / negFirst(e), NEG)
+    // A: the first x - 1 trials hold r - 1 successes; B: trial x is a success
+    if (p.latex.includes('P(A) &= \\boxed')) return confirmFormula(p, negFirst, NEG)
+    if (p.latex.includes('P(B) &= \\boxed')) return confirmFormula(p, e => negAll(e) / negFirst(e), NEG)
+    throw new Error(`no box found in ${p.latex}`)
   },
   'discrete-derive/negbin-result': p => confirmFormula(p, negAll, NEG),
   'discrete-derive/hyper-count'(p) {
-    if (p.latex.includes('\\text{samples with }')) return confirmFormula(p, favorable, HYP)
-    return confirmFormula(p, allSamples, HYP)
+    if (p.latex.includes('\\text{favorable} &= \\boxed')) return confirmFormula(p, favorable, HYP)
+    if (p.latex.includes('\\text{samples} &= \\boxed')) return confirmFormula(p, allSamples, HYP)
+    throw new Error(`no box found in ${p.latex}`)
   },
   'discrete-derive/hyper-result': p => confirmFormula(p, e => favorable(e) / allSamples(e), HYP),
   'discrete-derive/poisson-sum'(p) {

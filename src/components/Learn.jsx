@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import MathText from './MathText.jsx'
 import Options from './Options.jsx'
 import { useStudyAids } from './Tables.jsx'
+import { answerDisplay } from '../engine/display.js'
+import AnswerText from './AnswerText.jsx'
 
-function answerDisplay(p) {
-  return p.answerLatex ?? String(p.answer)
-}
 
 export default function Learn({ cls, topic, onExit, onDrill }) {
   const [examples, setExamples] = useState(() => topic.templates.map(t => t.generate()))
@@ -89,7 +88,7 @@ export default function Learn({ cls, topic, onExit, onDrill }) {
               {shown[i] ? (
                 <div className="example-solution">
                   <p className="solution-line">
-                    <MathText latex={answerDisplay(ex)} />
+                    <AnswerText problem={ex} />
                   </p>
                   {ex.hint && (
                     <div className="hint-card">

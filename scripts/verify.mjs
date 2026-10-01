@@ -17,6 +17,7 @@ import { classes } from '../src/classes/index.js'
 import { buildChoices } from '../src/engine/choices.js'
 import { checkAnswer } from '../src/engine/check.js'
 import { toLatex } from '../src/engine/expr.js'
+import { answerDisplay } from '../src/engine/display.js'
 import * as math3800 from './audit/math3800.mjs'
 import * as math223 from './audit/math223.mjs'
 
@@ -101,6 +102,7 @@ for (const cls of classes) {
         if (!p.hint || !p.hint.text) fail('missing hint')
         else if (p.hint.latex && !katexOk(p.hint.latex)) fail('hint latex does not parse')
         if (!katexOk(p.latex) || (p.answerLatex && !katexOk(p.answerLatex))) fail('problem/answer latex does not parse')
+        if (!katexOk(answerDisplay(p))) fail(`the answer shown on a miss does not parse: ${answerDisplay(p)}`)
         for (const o of p.options ?? []) if (typeof o !== 'string' && !katexOk(o.latex)) fail(`option latex does not parse: ${o.latex}`)
         // formula answers: the answer and every wrong choice must parse and render
         if (p.expr) {

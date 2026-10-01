@@ -9,7 +9,7 @@ import { successCounts } from './_lib.mjs'
 function setup(text) {
   let m
   if ((m = text.match(/^A fair coin is flipped (\d+) times\./))) return { n: +m[1], p: 0.5 }
-  if ((m = text.match(/^A (\d+)-question multiple-choice quiz has (\d+) choices per question/))) return { n: +m[1], p: 1 / +m[2] }
+  if ((m = text.match(/^An? (\d+)-question multiple-choice quiz has (\d+) choices per question/))) return { n: +m[1], p: 1 / +m[2] }
   const pm = text.match(/probability (\d*\.\d+), independently\./)
   const nm = text.match(/X is \D*(\d+)\D*\.$/)
   if (!pm || !nm) throw new Error(`cannot read n and p from "${text}"`)

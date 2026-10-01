@@ -48,7 +48,8 @@ export function phi(z) {
   return 0.5 - integrate(dens, z, 0, 2000)
 }
 
-const close = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b))
+// relative, with a small absolute floor for brute-force values that should be 0
+const close = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol * Math.max(Math.abs(a), Math.abs(b)) + 1e-10
 
 // A formula answer is right when it matches `reference(env)` (computed by brute
 // force) at every point, and every wrong choice must miss somewhere.

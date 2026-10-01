@@ -115,7 +115,8 @@ function latexToExpr(s) {
     return latexToExpr(inner)
   }
   while (i < s.length) {
-    if (s.startsWith('\\frac', i)) {
+    if (s.startsWith('\\displaystyle', i)) i += 13
+    else if (s.startsWith('\\frac', i)) {
       i += 5
       const a = group()
       out += `((${a})/(${group()}))`
@@ -142,13 +143,13 @@ export const derive = {
     const xs = dist.map((w, x) => (w > 0 ? x : -1)).filter(x => x >= 0)
     if (p.latex.includes('smallest')) return Math.min(...xs)
     if (p.latex.includes('largest')) return Math.max(...xs)
-    if (p.latex.includes('number of possible')) return xs.length
+    if (p.latex.includes('how many values')) return xs.length
     throw new Error(`unrecognized ask ${p.latex}`)
   },
   'hypergeometric/tail': p => eventProb(sampleDist(population(p.text)), p.latex),
   'hypergeometric/setup'(p) {
     const want = eventProb(sampleDist(population(p.text)), p.latex)
-    const hits = p.options.map((o, i) => (Math.abs(optionValue(o) - want) <= 1e-9 * Math.max(1, want) ? 'abcd'[i] : null)).filter(Boolean)
+    const hits = p.options.map((o, i) => (Math.abs(optionValue(o) - want) <= 1e-9 * Math.max(1, want) ? 'abcdefgh'[i] : null)).filter(Boolean)
     if (hits.length !== 1) throw new Error(`${hits.length} options equal the brute-force probability ${want}`)
     return hits[0]
   },

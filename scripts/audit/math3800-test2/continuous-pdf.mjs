@@ -143,7 +143,9 @@ export function supportOf(cond) {
 // The pdf shown as f(x) = \begin{cases} ... \end{cases}: { lo, hi, g (the
 // formula on the support), f (zero off it), tex }.
 export function densityOf(latex, env = {}) {
-  const live = casesOf(latex, 'f(x)').filter(r => !/otherwise/.test(r.cond))
+  const rows = casesOf(latex, 'f(x)')
+  if (rows.some(r => /otherwise/.test(r.cond) && r.expr !== '0')) throw new Error('f is not 0 off its support')
+  const live = rows.filter(r => !/otherwise/.test(r.cond))
   if (live.length !== 1) throw new Error(`expected one nonzero piece, got ${live.length}`)
   const [lo, hi] = supportOf(live[0].cond)
   const g = texFn(live[0].expr, env)
@@ -159,6 +161,9 @@ export function eventOf(s) {
   if ((m = s.match(/P\(X = (-?[\d.]+)\)/))) return [+m[1], +m[1]]
   throw new Error(`unrecognized event ${s}`)
 }
+
+// What the problem asks, written after the density's cases block.
+export const afterCases = latex => latex.slice(latex.lastIndexOf('\\end{cases}') + '\\end{cases}'.length)
 
 // ---------- integrating ----------
 
@@ -190,6 +195,46 @@ export function area(g, a, b) {
   return integrate(g, a, b, 4000)
 }
 
+// ∫ from 0 to ∞ of g with x = u²: keeps powers like x^(α−1) smooth at 0.
+export const halfLine = g => area(u => 2 * u * g(u * u), 0, Infinity)
+
+// A limit as printed: 0, a, x, {\infty}.
+function limitValue(tok, env, vars) {
+  const s = tok.replace(/^\{|\}$/g, '')
+  if (s === '\\infty') return Infinity
+  if (s === '-\\infty') return -Infinity
+  return texFormula(s, vars)(env)
+}
+
+// The value of a displayed expression at `env`: a plain formula, or
+// [factor] \int_lo^hi integrand \,dv [factor], integrated numerically over v.
+// \Gamma(\alpha) is read as the number env.G.
+export function exprValue(tex, env, vars) {
+  const s = tex.replaceAll('\\Gamma(\\alpha)', ' G ').trim()
+  const V = [...vars, 'G']
+  const m = s.match(/^(.*?)\\int_(\{[^}]*\}|[^\s^{])\^(\{[^}]*\}|[^\s{])\s*(.+?)\\,d([a-z])(.*)$/)
+  if (!m) return texFormula(s, V)(env)
+  const pre = m[1].replace(/\\cdot\s*$/, '').trim()
+  const post = m[6].trim()
+  const factor = (pre ? texFormula(pre, V)(env) : 1) * (post ? texFormula(post, V)(env) : 1)
+  const g = texFormula(m[4], V)
+  const scope = { ...env }
+  const h = u => {
+    scope[m[5]] = u
+    return g(scope)
+  }
+  const lo = limitValue(m[2], env, V)
+  const hi = limitValue(m[3], env, V)
+  return factor * (lo === 0 && hi === Infinity ? halfLine(h) : area(h, lo, hi))
+}
+
+// The rows of an aligned derivation.
+export const rowsOf = latex =>
+  latex
+    .replace(/^\\begin\{aligned\} /, '')
+    .replace(/ \\end\{aligned\}$/, '')
+    .split(' \\\\ ')
+
 // P(a ≤ X ≤ b) for a density from densityOf: integrate only where f lives.
 export function prob(d, a, b) {
   const lo = Math.max(a, d.lo)
@@ -216,9 +261,20 @@ function samplePoints(lo, hi) {
     for (let k = 0; k <= 2000; k++) xs.push(lo + ((hi - lo) * k) / 2000)
     return xs
   }
-  xs.push(lo)
-  for (let s = -6; s <= 4; s += 0.005) xs.push(lo + 10 ** s)
+  const from = lo === -Infinity ? 0 : lo
+  xs.push(from)
+  for (let s = -6; s <= 4; s += 0.005) {
+    xs.push(from + 10 ** s)
+    if (lo === -Infinity) xs.push(-(10 ** s))
+  }
   return xs
+}
+
+// A density that really is a pdf: never negative, total area 1. Returns it.
+export function validPdf(d) {
+  if (Math.min(...samplePoints(d.lo, d.hi).map(d.g)) < -1e-9) throw new Error('the density goes negative')
+  if (Math.abs(area(d.g, d.lo, d.hi) - 1) > 1e-8) throw new Error('the density does not integrate to 1')
+  return d
 }
 
 // The value after "= " in "P(...) = 0.1875".
@@ -242,19 +298,18 @@ export const derive = {
     return near(1 / area(d.g, d.lo, d.hi), p)
   },
   'continuous-pdf/prob'(p) {
-    const d = densityOf(p.latex)
-    if (Math.abs(area(d.g, d.lo, d.hi) - 1) > 1e-9) throw new Error('the density is not a pdf')
-    const [a, b] = eventOf(p.latex.split('\\qquad')[1])
+    const d = validPdf(densityOf(p.latex))
+    const [a, b] = eventOf(afterCases(p.latex))
     return near(prob(d, a, b), p)
   },
   'continuous-pdf/find-c-prob'(p) {
     const d = densityOf(p.latex, { c: 1 })
     const c = 1 / area(d.g, d.lo, d.hi)
-    const [a, b] = eventOf(p.latex.split('\\qquad')[1])
+    const [a, b] = eventOf(afterCases(p.latex))
     return near(c * prob(d, a, b), p)
   },
   'continuous-pdf/point'(p) {
-    const d = densityOf(p.latex)
+    const d = validPdf(densityOf(p.latex))
     const row = p.latex.split('\\end{cases}')[1]
     const parts = row.split('\\quad')
     const target = eventOf(parts[parts.length - 1])

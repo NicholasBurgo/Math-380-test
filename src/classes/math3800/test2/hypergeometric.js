@@ -212,11 +212,11 @@ export default {
   learn: {
     formulas: [
       { label: 'pdf', latex: PDF },
-      { label: 'Possible values', latex: '\\max(0,\\, n-(N-r)) \\le x \\le \\min(n,\\, r)' },
+      { label: 'Possible values', latex: '\\begin{gathered} x \\ge \\max(0,\\, n-(N-r)) \\\\ x \\le \\min(n,\\, r) \\end{gathered}' },
       { label: 'At least k: complement', latex: 'P(X \\ge k) = 1 - \\sum_{x=0}^{k-1} f(x)' },
       {
         label: 'Notes example: N = 15, r = 6, n = 12',
-        latex: 'x = 3, 4, 5, 6, \\quad P(X = 4) = \\frac{\\binom{6}{4}\\binom{9}{8}}{\\binom{15}{12}} = \\frac{15 \\cdot 9}{455} \\approx 0.2967',
+        latex: '\\begin{gathered} x = 3, 4, 5, 6 \\\\ P(X = 4) = \\frac{\\binom{6}{4}\\binom{9}{8}}{\\binom{15}{12}} \\approx 0.2967 \\end{gathered}',
       },
     ],
     how: [
@@ -245,7 +245,7 @@ export default {
           text: s.text,
           latex: `P(X = ${x}) = \\,?`,
           answer: v,
-          answerLatex: `${filled(s, x)} = \\frac{${big(a)} \\cdot ${big(b)}}{${big(c)}} = ${num(v)}`,
+          answerLatex: `\\displaystyle ${filled(s, x)} = \\frac{${big(a)} \\cdot ${big(b)}}{${big(c)}} = ${num(v)}`,
           placeholder: 'e.g. 0.297',
           tolerance: tolFor(v),
           hint: {
@@ -278,7 +278,7 @@ export default {
           return {
             ask: 'Find the possible values of X. What is the smallest one?',
             text: s.text,
-            latex: '\\text{smallest possible value of } X = \\,?',
+            latex: '\\text{smallest } x = \\,?',
             answer: lo,
             answerLatex: `\\max(0,\\, n - (N - r)) = \\max(0,\\, ${s.n} - ${fail}) = ${lo}`,
             placeholder: 'a whole number',
@@ -297,7 +297,7 @@ export default {
           return {
             ask: 'Find the possible values of X. What is the largest one?',
             text: s.text,
-            latex: '\\text{largest possible value of } X = \\,?',
+            latex: '\\text{largest } x = \\,?',
             answer: hi,
             answerLatex: `\\min(n,\\, r) = \\min(${s.n},\\, ${s.r}) = ${hi}`,
             placeholder: 'a whole number',
@@ -312,7 +312,7 @@ export default {
         return {
           ask: 'Find all possible values of X. How many are there?',
           text: s.text,
-          latex: '\\text{number of possible values of } X = \\,?',
+          latex: '\\text{how many values} = \\,?',
           answer: hi - lo + 1,
           answerLatex: `\\min(n, r) - \\max(0, n - (N - r)) + 1 = ${hi} - ${lo} + 1 = ${hi - lo + 1}`,
           placeholder: 'a whole number',
@@ -382,13 +382,13 @@ export default {
         ]
         const right = filled(s, x)
         const wrong = shuffle(cands.filter(c => c.latex !== right && Math.abs(c.v - v) > 1e-9 * Math.max(1, v)))
-        const pick = lettered({ latex: right }, wrong.map(c => ({ latex: c.latex })))
+        const pick = lettered({ latex: `\\displaystyle ${right}` }, wrong.map(c => ({ latex: `\\displaystyle ${c.latex}` })))
         return {
           ask: `Set it up: which expression is P(X = ${x})?`,
           text: s.text,
           latex: `P(X = ${x}) = \\,?`,
           ...pick,
-          answerLatex: `(${pick.answer})\\;\\; ${right} = ${num(v)}`,
+          answerLatex: `(${pick.answer})\\;\\; \\displaystyle ${right} = ${num(v)}`,
           placeholder: 'a, b, c or d',
           hint: {
             latex: PDF,

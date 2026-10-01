@@ -46,11 +46,11 @@ export default {
   learn: {
     formulas: [
       { label: 'Gamma function (on the sheet)', latex: '\\Gamma(\\alpha) = \\int_0^{\\infty} z^{\\alpha-1}e^{-z}\\,dz' },
-      { label: 'Properties', latex: '\\Gamma(1) = 1, \\quad \\Gamma(\\alpha+1) = \\alpha\\,\\Gamma(\\alpha), \\quad \\Gamma(n+1) = n!' },
+      { label: 'Properties', latex: '\\begin{gathered} \\Gamma(\\alpha+1) = \\alpha\\,\\Gamma(\\alpha) \\\\ \\Gamma(1) = 1, \\quad \\Gamma(n+1) = n! \\end{gathered}' },
       { label: 'With a scale β', latex: '\\int_0^{\\infty} x^{\\alpha-1}e^{-x/\\beta}\\,dx = \\Gamma(\\alpha)\\,\\beta^{\\alpha}' },
-      { label: 'Gamma pdf (on the sheet)', latex: 'f(x) = \\frac{1}{\\Gamma(\\alpha)\\beta^{\\alpha}}\\,x^{\\alpha-1}e^{-x/\\beta}, \\quad x > 0' },
+      { label: 'Gamma pdf, x > 0 (on the sheet)', latex: 'f(x) = \\frac{1}{\\Gamma(\\alpha)\\beta^{\\alpha}}\\,x^{\\alpha-1}e^{-x/\\beta}' },
       { label: 'Mean and variance', latex: '\\mu = \\alpha\\beta, \\quad \\sigma^2 = \\alpha\\beta^2' },
-      { label: 'Chi-squared, γ degrees of freedom', latex: '\\alpha = \\tfrac{\\gamma}{2},\\; \\beta = 2: \\quad \\mu = \\gamma, \\quad \\sigma^2 = 2\\gamma' },
+      { label: 'Chi-squared, γ degrees of freedom', latex: '\\begin{gathered} \\alpha = \\tfrac{\\gamma}{2}, \\quad \\beta = 2 \\\\ \\mu = \\gamma, \\quad \\sigma^2 = 2\\gamma \\end{gathered}' },
     ],
     how: [
       'Match the integral to Γ: the power of z is α − 1. ∫ z³e^(−z) dz is Γ(4) = 3! = 6. Being off by one here is the classic slip.',
@@ -124,7 +124,7 @@ export default {
           const ans = v * prod
           return {
             ask: 'Use Γ(α + 1) = αΓ(α) to step from the value given.',
-            latex: `${G(a, frac)} \\approx ${v}, \\quad ${G(a + k, frac)} = \\,?`,
+            latex: `\\begin{gathered} ${G(a, frac)} \\approx ${v} \\\\ ${G(a + k, frac)} = \\,? \\end{gathered}`,
             answer: ans,
             answerLatex: `${G(a + k, frac)} = ${factors} \\cdot ${v} = ${num(ans)}`,
             placeholder: 'e.g. 11.63',
@@ -138,7 +138,7 @@ export default {
         const ans = v / prod
         return {
           ask: 'Use Γ(α + 1) = αΓ(α) to step down from the value given.',
-          latex: `${G(a + k, frac)} \\approx ${v}, \\quad ${G(a, frac)} = \\,?`,
+          latex: `\\begin{gathered} ${G(a + k, frac)} \\approx ${v} \\\\ ${G(a, frac)} = \\,? \\end{gathered}`,
           answer: ans,
           answerLatex: `${G(a, frac)} = \\frac{${G(a + k, frac)}}{${factors}} = \\frac{${v}}{${factors}} = ${num(ans)}`,
           placeholder: 'e.g. 1.329',
@@ -186,8 +186,8 @@ export default {
         bottom /= g
         const shown = bottom === 1 ? `${top}` : `\\frac{${top}}{${bottom}}`
         return {
-          ask: 'Find the A that makes f a pdf.',
-          latex: `f(x) = A\\,${xPow(m)}\\,${expo(b)}, \\quad x > 0`,
+          ask: 'Find the A that makes f a pdf on x > 0.',
+          latex: `f(x) = A\\,${xPow(m)}\\,${expo(b)}`,
           answer: ans,
           answerLatex: `A = \\frac{1}{\\Gamma(${m + 1})\\,${bPow(b, m + 1)}} = ${shown}`,
           placeholder: 'e.g. 1/54',
@@ -216,8 +216,8 @@ export default {
             b = choice([2, 3, 4, 5])
             D = fact(a - 1) * b ** a
           } while (D > 1600)
-          text = 'X has the pdf below.'
-          latexHead = `f(x) = \\frac{1}{${D}}\\,${xPow(a - 1)}\\,e^{-x/${b}}, \\; x > 0 \\\\ `
+          text = 'X has the pdf below, for x > 0.'
+          latexHead = `f(x) = \\frac{1}{${D}}\\,${xPow(a - 1)}\\,e^{-x/${b}} \\\\ `
           read = `\\alpha = ${a},\\; \\beta = ${b}: \\; `
         } else {
           a = choice([1.5, 2, 2.5, 3, 4, 5, 6])

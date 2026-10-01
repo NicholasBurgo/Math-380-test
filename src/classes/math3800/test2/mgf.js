@@ -106,7 +106,7 @@ function continuousCase() {
     wrong: { mean: [s2 / 2, s2, -mu], second: [s2, mu * mu, s2 / 2 + mu * mu], var: [s2 / 2, s2 + mu * mu, Math.sqrt(s2)] },
     hint: {
       latex: "m_X(t) = e^{\\mu t + \\sigma^2 t^2/2}: \\quad m_X'(0) = \\mu, \\quad m_X''(0) = \\sigma^2 + \\mu^2",
-      text: `Normal MGF: the coefficient of t is μ = ${minus(mu)}, and the coefficient of t² is σ²/2, so σ² = ${s2}. Differentiating brings down (μ + σ²t) each time.`,
+      text: `Normal MGF: the coefficient of t is μ = ${minus(mu)}, and the coefficient of t² is σ²/2, so σ² = ${s2}. m′(t) = (μ + σ²t)m(t) gives m′(0) = μ; the product rule once more gives m″(0) = σ² + μ².`,
     },
   }
 }

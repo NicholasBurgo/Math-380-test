@@ -128,7 +128,7 @@ function series(K, c) {
 }
 
 const PDF = 'f(x) = \\frac{e^{-k}k^x}{x!}, \\quad k = \\lambda s'
-const lead = s => (s.work ? `${s.work}, \\quad ` : '')
+const lead = s => `\\displaystyle ${s.work ? `${s.work}, \\quad ` : ''}`
 
 export default {
   id: 'poisson',
@@ -136,13 +136,13 @@ export default {
   description: '§3.8: k = λs, probabilities, mean and variance.',
   learn: {
     formulas: [
-      { label: 'pdf (on the sheet)', latex: 'f(x) = \\frac{e^{-k}k^x}{x!}, \\quad x = 0, 1, 2, \\ldots, \\quad k > 0' },
-      { label: 'Parameter', latex: 'k = \\lambda s \\quad (\\lambda = \\text{average per unit},\\; s = \\text{number of units})' },
-      { label: 'Mean and variance', latex: 'E[X] = k, \\quad \\operatorname{Var}X = k, \\quad \\sigma = \\sqrt{k}' },
-      { label: 'At least one', latex: 'P(X \\ge 1) = 1 - f(0) = 1 - e^{-k}' },
+      { label: 'pdf (on the sheet), x = 0, 1, 2, …', latex: 'f(x) = \\frac{e^{-k}k^x}{x!}' },
+      { label: 'Parameter: λ per unit, over s units', latex: 'k = \\lambda s' },
+      { label: 'Mean and variance', latex: 'E[X] = \\operatorname{Var}X = k, \\quad \\sigma = \\sqrt{k}' },
+      { label: 'At least one', latex: 'P(X \\ge 1) = 1 - e^{-k}' },
       {
         label: 'Notes example: 6000 per mm³, a 0.001 mm³ drop',
-        latex: 'k = 6000(0.001) = 6, \\quad P(X \\le 2) = e^{-6}\\left(1 + 6 + \\tfrac{6^2}{2!}\\right) \\approx 0.0620',
+        latex: '\\begin{gathered} k = 6000(0.001) = 6 \\\\ P(X \\le 2) = e^{-6}(1 + 6 + 18) \\\\ \\approx 0.0620 \\end{gathered}',
       },
     ],
     how: [
@@ -289,7 +289,7 @@ export default {
           vars: ['x'],
           points: [0, 1, 2, 3, 5].map(x => ({ x })),
           answer,
-          answerLatex: `${s.work}, \\quad f(x) = ${toLatex(answer, ['x'])}`,
+          answerLatex: `\\displaystyle ${s.work}, \\quad f(x) = ${toLatex(answer, ['x'])}`,
           choices: wrong.slice(0, 3),
           placeholder: 'f(x) in terms of x, e.g. e^(-2)2^x/x!',
           hint: { latex: PDF, text: `${s.why} Then f(x) = e^(−k)k^x/x! with that k.` },

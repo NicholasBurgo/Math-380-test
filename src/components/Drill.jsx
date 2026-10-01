@@ -9,12 +9,11 @@ import { recordAnswer, recordPage } from '../engine/stats.js'
 import { pickWeightedTopic, createFreshPicker } from '../engine/pick.js'
 import { toLatex } from '../engine/expr.js'
 import { useStudyAids } from './Tables.jsx'
+import { answerDisplay } from '../engine/display.js'
+import AnswerText from './AnswerText.jsx'
 
 const SET_SIZE = 20
 
-function answerDisplay(p) {
-  return p.answerLatex ?? String(p.answer)
-}
 
 function loadPref(key, fallback) {
   try {
@@ -365,7 +364,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
           {feedback === 'correct' && <p className="fb ok">✓ correct · Enter for next rep</p>}
           {feedback === 'wrong' && (
             <p className="fb bad">
-              ✗ <MathText latex={answerDisplay(problem)} /> · comes back in 2 reps
+              ✗ <AnswerText problem={problem} /> · comes back in 2 reps
             </p>
           )}
           {feedback === 'wrong' && problem.hint && (

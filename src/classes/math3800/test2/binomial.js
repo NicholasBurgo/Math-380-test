@@ -21,9 +21,11 @@ function story(n) {
   if (r < 0.1) return { p: 0.5, text: `A fair coin is flipped ${n} times. X is the number of heads.` }
   if (r < 0.22) {
     const m = choice([4, 5])
+    // "an 8-question", "an 11-question", "an 80-question"
+    const article = n === 8 || n === 11 || n === 18 || (n >= 80 && n <= 89) ? 'An' : 'A'
     return {
       p: 1 / m,
-      text: `A ${n}-question multiple-choice quiz has ${m} choices per question, and you guess on every one. X is the number you get right.`,
+      text: `${article} ${n}-question multiple-choice quiz has ${m} choices per question, and you guess on every one. X is the number you get right.`,
     }
   }
   const s = choice(STORIES)
@@ -77,7 +79,7 @@ export default {
             tolerance: tolFor(ans),
             hint: {
               latex: 'P(X = x) = \\binom{n}{x}p^x q^{n-x}',
-              text: `Here n = ${n}, x = ${x}, p = ${dec(p)} and q = ${dec(q)}. C(${n}, ${x}) = ${comb(n, x)} counts the ways to place the ${x} successes; each way has ${x} factors of p and ${n - x} of q.`,
+              text: `Here n = ${n}, x = ${x}, p = ${dec(p)} and q = ${dec(q)}. C(${n}, ${x}) = ${comb(n, x)} counts which trials are the successes, and each of those arrangements has probability p^${x} q^${n - x}.`,
             },
             distractors: probs(p ** x * q ** (n - x), comb(n, x) * q ** x * p ** (n - x), binomCdf(n, p, x), comb(n, x) * p ** x),
           }

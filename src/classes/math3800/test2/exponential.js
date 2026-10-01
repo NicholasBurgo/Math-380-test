@@ -11,31 +11,80 @@ const clean = (v, places) => Math.abs(v * 10 ** places - Math.round(v * 10 ** pl
 // wrong answers that still look like probabilities
 const keep = (...vs) => vs.filter(v => Number.isFinite(v) && v > 0.0005 && v < 0.9995)
 
+// Each story's realistic rates: `every` lists mean waits m ("1 every m units"),
+// `rate` lists λ ("λ per unit"), both by unit.
 const STORIES = [
-  { lead: 'A killer paramecium emits killer particles', first: 'the first particle is emitted', units: ['hour'], notes: true, slow: true },
-  { lead: 'Calls reach a help desk', first: 'the first call', units: ['minute', 'hour'] },
-  { lead: 'Customers walk into a coffee shop', first: 'the first customer arrives', units: ['minute', 'hour'] },
-  { lead: 'A Geiger counter clicks', first: 'the first click', units: ['second', 'minute'] },
-  { lead: 'Emails land in an inbox', first: 'the first email', units: ['minute', 'hour'], slow: true },
-  { lead: 'A web server crashes', first: 'the first crash', units: ['day'] },
-  { lead: 'During a meteor shower, meteors streak across the sky', first: 'the first meteor', units: ['minute'] },
-  { lead: 'Cars reach a toll booth', first: 'the first car', units: ['second', 'minute'] },
+  {
+    lead: 'A killer paramecium emits killer particles',
+    first: 'the first particle is emitted',
+    notes: true,
+    every: { hour: [2, 4, 5, 8, 10] },
+    rate: { hour: [0.1, 0.2, 0.25, 0.5] },
+  },
+  {
+    lead: 'Calls reach a help desk',
+    first: 'the first call',
+    every: { minute: [2, 4, 5, 10, 15, 20, 30], hour: [2, 4] },
+    rate: { minute: [0.2, 0.25, 0.5, 2], hour: [2, 3, 4, 5, 6, 10, 12, 20] },
+  },
+  {
+    lead: 'Customers walk into a coffee shop',
+    first: 'the first customer arrives',
+    every: { minute: [2, 4, 5, 10, 12, 15] },
+    rate: { minute: [0.2, 0.25, 0.5, 2, 3], hour: [3, 4, 5, 6, 10, 12, 20, 30] },
+  },
+  {
+    lead: 'A Geiger counter clicks',
+    first: 'the first click',
+    every: { second: [2, 4, 5, 10, 20, 30], minute: [2, 4, 5] },
+    rate: { second: [0.5, 2, 4, 5], minute: [0.5, 1, 2, 3, 4, 6] },
+  },
+  {
+    lead: 'Emails land in an inbox',
+    first: 'the first email',
+    every: { minute: [5, 10, 12, 15, 20, 30], hour: [2, 4, 5, 8] },
+    rate: { minute: [0.2, 0.25, 0.5], hour: [2, 3, 4, 5, 6, 10, 12] },
+  },
+  {
+    lead: 'A web server crashes',
+    first: 'the first crash',
+    every: { day: [10, 20, 25, 40, 50] },
+    rate: { day: [0.02, 0.05, 0.1, 0.25] },
+  },
+  {
+    lead: 'A small fire department gets calls',
+    first: 'the first call',
+    every: { day: [2, 4, 5] },
+    rate: { day: [0.5, 2, 3, 4, 6] },
+  },
+  {
+    lead: 'During a meteor shower, meteors streak across the sky',
+    first: 'the first meteor',
+    every: { minute: [2, 4, 5, 10, 12, 15, 20, 30] },
+    rate: { minute: [0.2, 0.25, 0.5, 2] },
+  },
+  {
+    lead: 'Cars reach a toll booth',
+    first: 'the first car',
+    every: { second: [10, 15, 20, 30], minute: [2, 4, 5] },
+    rate: { second: [0.05, 0.1, 0.2, 0.25], minute: [0.5, 1, 2, 3, 4, 6] },
+  },
 ]
+const unitsOf = story => [...new Set([...Object.keys(story.every), ...Object.keys(story.rate)])]
 
-// "1 every m units" or "λ per unit"
-const EVERY = { second: [2, 4, 5, 10, 20, 30], minute: [2, 4, 5, 10, 15, 20, 30], hour: [2, 4, 5, 8, 10, 12], day: [10, 20, 25, 40, 50] }
-const RATE = { second: [0.5, 2, 4, 5], minute: [0.2, 0.25, 0.5, 2, 3, 4], hour: [0.2, 0.25, 0.5, 2, 3, 4, 6, 10], day: [0.02, 0.05, 0.1, 0.25] }
-
-// A Poisson process in the story's own unit: its sentence, β and λ.
+// A Poisson process in one unit: its sentence, β and λ. The story's own list
+// supplies the number unless `value` does; a form the story lacks in that unit
+// falls back to the other one.
 function makeProcess(story, unit, form, value) {
+  if (!story[form][unit]) form = form === 'every' ? 'rate' : 'every'
   if (form === 'every') {
-    const m = value ?? choice(EVERY[unit])
+    const m = value ?? choice(story.every[unit])
     const sentence = story.notes
       ? `The mean number of killer particles emitted by a killer paramecium is 1 every ${m} ${units(m, unit)}.`
       : `${story.lead} at an average of 1 every ${m} ${units(m, unit)}.`
     return { form, unit, m, beta: m, lambda: 1 / m, sentence }
   }
-  const lam = value ?? choice(RATE[unit])
+  const lam = value ?? choice(story.rate[unit])
   return { form, unit, lam, beta: 1 / lam, lambda: lam, sentence: `${story.lead} at an average rate of ${dec(lam)} per ${unit}.` }
 }
 const waitLine = (story, unit) => `W is the wait, in ${unit}s, until ${story.first}.`
@@ -70,8 +119,9 @@ export default {
   learn: {
     formulas: [
       { label: 'Exponential pdf: gamma with α = 1 (on the sheet)', latex: 'f(x) = \\frac{1}{\\beta}e^{-x/\\beta}, \\quad x > 0' },
-      { label: 'First event of a Poisson process with rate λ', latex: 'W \\text{ is exponential with } \\beta = \\frac{1}{\\lambda}' },
-      { label: 'cdf and tail', latex: 'P(W \\le t) = 1 - e^{-\\lambda t}, \\quad P(W > t) = e^{-\\lambda t}' },
+      { label: 'Wait W for the first event, rate λ', latex: 'W \\text{ is exponential}, \\quad \\beta = \\frac{1}{\\lambda}' },
+      { label: 'cdf: the first event by time t', latex: 'P(W \\le t) = 1 - e^{-\\lambda t}' },
+      { label: 'Tail: no event by time t', latex: 'P(W > t) = e^{-\\lambda t}' },
       { label: 'Between', latex: 'P(a < W < b) = e^{-\\lambda a} - e^{-\\lambda b}' },
       { label: 'Mean and variance', latex: 'E[W] = \\beta = \\frac{1}{\\lambda}, \\quad \\operatorname{Var}W = \\beta^2' },
     ],
@@ -88,7 +138,7 @@ export default {
       id: 'at-most',
       generate() {
         const story = choice(STORIES)
-        const unit = choice(story.units)
+        const unit = choice(unitsOf(story))
         const pr = makeProcess(story, unit, Math.random() < 0.6 ? 'every' : 'rate')
         const [t] = pickTimes(pr.beta)
         const x = t / pr.beta
@@ -119,8 +169,6 @@ export default {
           { form: 'every', from: 'second', to: 'minute' },
           { form: 'every', from: 'hour', to: 'day' },
         ]
-        const RATES = { hour: [2, 3, 4, 5, 6, 10, 12, 20, 30], minute: [0.5, 1, 2, 3, 4, 6], day: [2, 3, 4, 6, 8, 12] }
-        const MEANS = { minute: [5, 10, 12, 15, 20, 30], second: [10, 15, 20, 30], hour: [4, 6, 8, 12] }
         const TIMES = {
           minute: [3, 5, 6, 9, 10, 12, 15, 18, 20, 24, 30, 36, 40, 45, 48, 90],
           second: [5, 6, 10, 12, 15, 20, 30, 45],
@@ -129,8 +177,8 @@ export default {
         }
         for (;;) {
           const pair = choice(PAIRS)
-          const story = choice(STORIES.filter(s => s.units.includes(pair.from) && (pair.to !== 'day' || s.slow)))
-          const pr = makeProcess(story, pair.from, pair.form, choice(pair.form === 'rate' ? RATES[pair.from] : MEANS[pair.from]))
+          const story = choice(STORIES.filter(s => s[pair.form][pair.from]))
+          const pr = makeProcess(story, pair.from, pair.form)
           const c = SEC[pair.from] / SEC[pair.to] // W units in one of the rate's units
           const ok = TIMES[pair.to].filter(t => {
             const x = t / c / pr.beta
@@ -165,7 +213,7 @@ export default {
       id: 'more-than',
       generate() {
         const story = choice(STORIES)
-        const unit = choice(story.units)
+        const unit = choice(unitsOf(story))
         const pr = makeProcess(story, unit, Math.random() < 0.5 ? 'every' : 'rate')
         const [t] = pickTimes(pr.beta)
         const x = t / pr.beta
@@ -191,7 +239,7 @@ export default {
       id: 'between',
       generate() {
         const story = choice(STORIES)
-        const unit = choice(story.units)
+        const unit = choice(unitsOf(story))
         const pr = makeProcess(story, unit, Math.random() < 0.5 ? 'every' : 'rate')
         let a
         let b
@@ -225,11 +273,11 @@ export default {
           const story = choice(STORIES)
           const mixed = Math.random() < 0.35
           const PAIRS = { hour: 'minute', minute: 'second', day: 'hour' }
-          const from = choice(story.units)
+          const from = choice(unitsOf(story))
           const to = mixed ? PAIRS[from] : from
           if (!to) continue
-          const form = Math.random() < 0.5 ? 'every' : 'rate'
-          const pr = makeProcess(story, from, form)
+          const pr = makeProcess(story, from, Math.random() < 0.5 ? 'every' : 'rate')
+          const form = pr.form
           const c = SEC[from] / SEC[to]
           const beta = pr.beta * c // mean wait in W's unit
           if (beta > 60) continue

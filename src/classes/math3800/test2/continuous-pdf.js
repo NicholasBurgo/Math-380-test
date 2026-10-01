@@ -235,19 +235,22 @@ export const someDensity = kinds => FAMILIES[choice(kinds)]()
 export const condTex = (lo, hi) => (hi === Infinity ? (lo === 0 ? 'x > 0' : `x \\ge ${lo}`) : `${lo} \\le x \\le ${hi}`)
 export const pdfCases = (tex, lo, hi) => `f(x) = \\begin{cases} ${tex} & ${condTex(lo, hi)} \\\\ 0 & \\text{otherwise} \\end{cases}`
 export const limTex = x => (x === Infinity ? '\\infty' : String(x))
+// The density on top, the question under it (narrow screens never scroll sideways).
+export const stack = (...rows) => `\\begin{gathered} ${rows.join(' \\\\ ')} \\end{gathered}`
+
+// The spacing of nice points on a finite support.
+export const gridStep = d => {
+  const w = d.hi - d.lo
+  return w <= 0.2 ? 0.05 : w <= 0.5 ? 0.1 : w <= 1 ? 0.25 : w <= 2 ? 0.5 : 1
+}
 
 // Nice points strictly inside the support, ascending.
 export function gridPoints(d) {
   if (d.hi === Infinity) return EXP_GRID[d.beta]
-  const w = d.hi - d.lo
-  const step = w <= 0.2 ? 0.05 : w <= 0.5 ? 0.1 : w <= 1 ? 0.25 : w <= 2 ? 0.5 : 1
+  const step = gridStep(d)
   const out = []
   for (let k = 1; d.lo + k * step < d.hi - 1e-9; k++) out.push(clean(d.lo + k * step))
   return out
-}
-export const gridStep = d => {
-  const w = d.hi - d.lo
-  return w <= 0.2 ? 0.05 : w <= 0.5 ? 0.1 : w <= 1 ? 0.25 : w <= 2 ? 0.5 : 1
 }
 
 // An event about X: how it reads, and the limits once clipped to the support.
@@ -456,6 +459,7 @@ const FIND_C = [
         area: [beta, 1],
         G: x => -beta * Math.exp(-x / beta),
         wrong: [beta, 1, 1 / (2 * beta)],
+        grid: [beta / 2, beta, 2 * beta],
       }
     }
     const k = choice([2, 3, 4])
@@ -467,6 +471,7 @@ const FIND_C = [
       area: [1, k],
       G: x => -Math.exp(-k * x) / k,
       wrong: [1 / k, 1, k * k],
+      grid: [0.25, 0.5, 1],
     }
   },
   () => {
@@ -487,6 +492,7 @@ const FIND_C = [
       area: [1, c],
       G: x => -(x ** (1 - m)) / (m - 1),
       wrong: [1 / c, L === 1 ? m + 1 : m - 1, (m + 1) * L ** (m + 1)],
+      grid: [L + 0.5, 2 * L, 3 * L],
     }
   },
 ]
@@ -565,7 +571,7 @@ export default {
         const [p, q] = s.area
         return {
           ask: 'Find the constant c that makes f a pdf.',
-          latex: `${pdfCases(s.tex, s.lo, s.hi)} \\qquad c = \\,?`,
+          latex: stack(pdfCases(s.tex, s.lo, s.hi), 'c = \\,?'),
           size: 'small',
           answer: s.c,
           answerLatex: work(
@@ -592,7 +598,7 @@ export default {
         if (ev.a > d.lo) wrong.push(d.F(ev.b))
         return {
           ask: 'Find the probability by integrating the pdf.',
-          latex: `${pdfCases(d.tex, d.lo, d.hi)} \\qquad ${ev.latex} = \\,?`,
+          latex: stack(pdfCases(d.tex, d.lo, d.hi), `${ev.latex} = \\,?`),
           size: 'small',
           answer: ans,
           answerLatex: areaWork(d, ev.a, ev.b, ans),
@@ -601,7 +607,7 @@ export default {
           hint: {
             latex: 'P(a < X < b) = \\int_a^b f(x)\\,dx',
             text: ev.raw
-              ? `Part of that range is outside the support, where f = 0. Integrate only from ${ev.a} to ${limTex(ev.b) === '\\infty' ? '∞' : ev.b}.`
+              ? `Part of that range is outside the support, where f = 0. Integrate only from ${ev.a} to ${ev.b}.`
               : 'Integrate f between the two limits (antiderivative at the top minus at the bottom). Do not subtract density values.',
           },
           distractors: probs(...wrong),
@@ -616,7 +622,7 @@ export default {
         let b
         let latex
         if (s.hi === Infinity) {
-          const u = s.lo + choice([0.5, 1, 2, 3])
+          const u = choice(s.grid)
           ;[a, b] = Math.random() < 0.5 ? [u, Infinity] : [s.lo, u]
           latex = b === Infinity ? `P(X > ${u})` : `P(X < ${u})`
         } else {
@@ -643,7 +649,7 @@ export default {
         const ans = s.c * raw
         return {
           ask: 'First find c so that f is a pdf, then the probability.',
-          latex: `${pdfCases(s.tex, s.lo, s.hi)} \\qquad ${latex} = \\,?`,
+          latex: stack(pdfCases(s.tex, s.lo, s.hi), `${latex} = \\,?`),
           size: 'small',
           answer: ans,
           answerLatex: work(
@@ -703,7 +709,7 @@ export default {
         }
         return {
           ask: 'X is continuous. What is one point worth?',
-          latex: `\\begin{gathered} ${pdfCases(d.tex, d.lo, d.hi)} \\\\ ${given ? `${given}, \\quad ` : ''}${target} = \\,? \\end{gathered}`,
+          latex: stack(pdfCases(d.tex, d.lo, d.hi), `${given ? `${given}, \\quad ` : ''}${target} = \\,?`),
           size: 'small',
           answer: ans,
           answerLatex: work(shown),

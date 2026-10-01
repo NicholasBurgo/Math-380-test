@@ -367,4 +367,4 @@ export const derive = {
   },
 }
 
-export const SAMPLES = { 'mgf/identify': 400 }
+export const SAMPLES = { 'mgf/identify': 1000 }

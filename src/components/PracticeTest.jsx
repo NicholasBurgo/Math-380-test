@@ -7,8 +7,9 @@ import { createFreshPicker, pickWeightedTopic } from '../engine/pick.js'
 import { recordAnswer, recordPage } from '../engine/stats.js'
 import { toLatex } from '../engine/expr.js'
 import { useStudyAids } from './Tables.jsx'
+import { answerDisplay } from '../engine/display.js'
+import AnswerText from './AnswerText.jsx'
 
-const answerDisplay = p => p.answerLatex ?? String(p.answer)
 
 function clock(s) {
   const m = Math.floor(s / 60)
@@ -128,7 +129,7 @@ export default function PracticeTest({ cls, unit, onExit, onDrill }) {
                     <Options options={g.problem.options} />
                     <p className="solution-line">
                       {g.raw ? <>You: {g.raw} · </> : <>Skipped · </>}
-                      Answer: <MathText latex={answerDisplay(g.problem)} />
+                      Answer: <AnswerText problem={g.problem} />
                     </p>
                     {g.problem.hint && (
                       <div className="hint-card">

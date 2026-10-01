@@ -1166,6 +1166,10 @@ input:focus-visible {
   grid-template-columns: repeat(2, minmax(150px, 300px));
 }
 
+.answer-option {
+  white-space: normal;
+}
+
 /* ---------- practice test ---------- */
 
 .drill-rep.over {
