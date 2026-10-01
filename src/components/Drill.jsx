@@ -7,6 +7,8 @@ import { checkAnswer } from '../engine/check.js'
 import { buildChoices } from '../engine/choices.js'
 import { recordAnswer, recordPage } from '../engine/stats.js'
 import { pickWeightedTopic, createFreshPicker } from '../engine/pick.js'
+import { toLatex } from '../engine/expr.js'
+import { useStudyAids } from './Tables.jsx'
 
 const SET_SIZE = 20
 
@@ -30,6 +32,13 @@ function savePref(key, value) {
   }
 }
 
+// A formula typed as an answer, previewed as it will be read.
+function ExprPreview({ input, vars }) {
+  if (!input.trim()) return <p className="expr-preview">a formula in {vars.join(', ')}: use ^ for powers, e^(...), C(n,k)</p>
+  const latex = toLatex(input, vars)
+  return <p className="expr-preview">{latex ? <MathText latex={latex} /> : `that doesn't read as a formula in ${vars.join(', ')} yet`}</p>
+}
+
 export default function Drill({ cls, topic, unit, onExit }) {
   const session = useMemo(() => {
     const fresh = createFreshPicker()
@@ -51,6 +60,8 @@ export default function Drill({ cls, topic, unit, onExit }) {
   const [set, setSet] = useState({ n: 1, reps: 0, correct: 0, streak: 0, best: 0, misses: {} })
   const [summary, setSummary] = useState(null)
   const inputRef = useRef(null)
+  // the formula sheet and tables of the test this drill belongs to
+  const aids = useStudyAids(unit ?? cls.units.find(u => topic && u.topics.includes(topic)))
 
   const problem = current.problem
 
@@ -109,6 +120,8 @@ export default function Drill({ cls, topic, unit, onExit }) {
       return
     }
     if (!input.trim()) return
+    // a formula that doesn't parse yet isn't wrong, just unfinished: the preview says so
+    if (problem.expr && !toLatex(input, problem.expr.vars)) return
     applyAnswer(checkAnswer(input, problem))
   }
 
@@ -151,6 +164,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
 
   useEffect(() => {
     function onKey(e) {
+      if (aids.open) return
       if (e.key === 'Escape') {
         onExit()
         return
@@ -283,6 +297,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
             Clear
           </button>
         )}
+        {aids.buttons}
       </div>
 
       <main className="drill-main">
@@ -292,7 +307,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
         </div>
         {problem.ask && <p className="ask mathx">{problem.ask}</p>}
         {problem.text && <p className="problem-text">{problem.text}</p>}
-        <div className={problem.size === 'small' ? 'problem problem-small' : 'problem'}>
+        <div className={problem.size ? `problem problem-${problem.size}` : 'problem'}>
           <MathText latex={problem.latex} display />
         </div>
         <Options options={problem.options} />
@@ -301,7 +316,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
           <form className="answer-form" onSubmit={handleSubmit}>
             <input
               ref={inputRef}
-              className="answer-input"
+              className={`answer-input ${problem.expr ? 'formula' : ''}`}
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder={problem.placeholder ?? 'answer'}
@@ -318,11 +333,12 @@ export default function Drill({ cls, topic, unit, onExit }) {
           </form>
         ) : (
           <div className="choices-zone">
-            <div className={`choices ${choices?.length === 2 ? 'two' : ''}`}>
+            <div className={`choices ${choices?.length === 2 ? 'two' : ''} ${problem.expr ? 'wide' : ''}`}>
               {choices?.map((c, i) => {
                 let cls2 = 'choice'
                 if (feedback !== null && c.correct) cls2 += ' right'
                 else if (feedback !== null && picked === i) cls2 += ' picked-wrong'
+                const latex = problem.expr ? toLatex(c.label, problem.expr.vars) : null
                 return (
                   <button
                     key={i}
@@ -331,7 +347,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
                     disabled={feedback !== null}
                   >
                     <span className="choice-key">{i + 1}</span>
-                    {c.label}
+                    {latex ? <MathText latex={`\\displaystyle ${latex}`} /> : c.label}
                   </button>
                 )
               })}
@@ -343,6 +359,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
             )}
           </div>
         )}
+        {mode === 'typed' && problem.expr && feedback === null && <ExprPreview input={input} vars={problem.expr.vars} />}
 
         <div className="feedback">
           {feedback === 'correct' && <p className="fb ok">✓ correct · Enter for next rep</p>}
@@ -362,6 +379,7 @@ export default function Drill({ cls, topic, unit, onExit }) {
       </main>
 
       {scratch && <ScratchOverlay repKey={current} clearSignal={scratchClears} erase={erasePen} />}
+      {aids.overlay}
 
       <footer className="drill-foot">
         <span>streak {set.streak}</span>

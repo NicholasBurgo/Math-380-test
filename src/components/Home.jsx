@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { classes } from '../classes/index.js'
 import { getSkill, heatOf, reviewDue, getPages } from '../engine/stats.js'
+import { useStudyAids } from './Tables.jsx'
 
-export default function Home({ onDrill, onLearn }) {
+const HEAT_ORDER = ['cold', 'warm', 'hot', 'mastered']
+
+export default function Home({ onDrill, onLearn, onTest }) {
   return (
     <div className="sheet">
       <header className="home-head">
@@ -11,7 +14,7 @@ export default function Home({ onDrill, onLearn }) {
       </header>
 
       {classes.map(cls => (
-        <ClassBlock key={cls.id} cls={cls} onDrill={onDrill} onLearn={onLearn} />
+        <ClassBlock key={cls.id} cls={cls} onDrill={onDrill} onLearn={onLearn} onTest={onTest} />
       ))}
 
       <footer className="site-foot">
@@ -27,7 +30,7 @@ export default function Home({ onDrill, onLearn }) {
   )
 }
 
-function ClassBlock({ cls, onDrill, onLearn }) {
+function ClassBlock({ cls, onDrill, onLearn, onTest }) {
   const pages = getPages(cls.id).slice(0, 5)
 
   return (
@@ -40,7 +43,7 @@ function ClassBlock({ cls, onDrill, onLearn }) {
       </div>
 
       {cls.units.map(unit => (
-        <UnitBlock key={unit.id} cls={cls} unit={unit} onDrill={onDrill} onLearn={onLearn} />
+        <UnitBlock key={unit.id} cls={cls} unit={unit} onDrill={onDrill} onLearn={onLearn} onTest={onTest} />
       ))}
 
       {pages.length > 0 && (
@@ -65,7 +68,7 @@ function ClassBlock({ cls, onDrill, onLearn }) {
   )
 }
 
-function UnitBlock({ cls, unit, onDrill, onLearn }) {
+function UnitBlock({ cls, unit, onDrill, onLearn, onTest }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -81,6 +84,8 @@ function UnitBlock({ cls, unit, onDrill, onLearn }) {
           Mixed set
         </button>
       </div>
+
+      {open && unit.guide && <Guide cls={cls} unit={unit} onDrill={onDrill} onTest={onTest} />}
 
       {open && (
         <ul className="topic-list">
@@ -110,6 +115,51 @@ function UnitBlock({ cls, unit, onDrill, onLearn }) {
           })}
         </ul>
       )}
+    </div>
+  )
+}
+
+// The test's study guide as a checklist: each "be able to" line, how warm its
+// topics are (the coldest one counts), and a mixed set of just those topics.
+function Guide({ cls, unit, onDrill, onTest }) {
+  const aids = useStudyAids(unit, { know: true })
+  const byId = Object.fromEntries(unit.topics.map(t => [t.id, t]))
+  return (
+    <div className="guide">
+      <div className="guide-head">
+        <h3 className="mathx">Study guide: be able to</h3>
+        <div className="guide-tools">
+          {aids.buttons}
+          <button className="tool-btn" onClick={() => onTest(cls, unit)}>
+            Practice test
+          </button>
+        </div>
+      </div>
+      <ul className="guide-list">
+        {unit.guide.map((g, i) => {
+          const topics = g.topics.map(id => byId[id]).filter(t => t?.templates?.length)
+          const heat = topics.length
+            ? topics.map(t => heatOf(getSkill(cls.id, t.id))).sort((a, b) => HEAT_ORDER.indexOf(a) - HEAT_ORDER.indexOf(b))[0]
+            : 'cold'
+          return (
+            <li key={i} className="guide-row">
+              <span className={`guide-mark ${heat}`} title={heat} aria-label={heat} />
+              <span className="guide-text">{g.text}</span>
+              {topics.length > 0 && (
+                <button
+                  className="btn ghost"
+                  onClick={() =>
+                    onDrill(cls, topics.length === 1 ? topics[0] : null, { ...unit, id: `${unit.id}-guide-${i}`, name: g.short, topics })
+                  }
+                >
+                  Drill
+                </button>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+      {aids.overlay}
     </div>
   )
 }

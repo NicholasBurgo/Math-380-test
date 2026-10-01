@@ -10,15 +10,21 @@
 // wrong.
 //
 // Run: npm run verify
+// Just some topics: npm run verify -- --only=geometric,mgf  (topic ids, or class/topic)
 
 import katex from 'katex'
 import { classes } from '../src/classes/index.js'
 import { buildChoices } from '../src/engine/choices.js'
 import { checkAnswer } from '../src/engine/check.js'
+import { toLatex } from '../src/engine/expr.js'
 import * as math3800 from './audit/math3800.mjs'
 import * as math223 from './audit/math223.mjs'
 
 const AUDITS = { math3800, math223 }
+
+const onlyArg = process.argv.find(a => a.startsWith('--only='))
+const ONLY = onlyArg ? new Set(onlyArg.slice('--only='.length).split(',').filter(Boolean)) : null
+const wanted = (cls, topic) => !ONLY || ONLY.has(topic.id) || ONLY.has(`${cls.id}/${topic.id}`)
 
 const failures = []
 const results = []
@@ -56,8 +62,9 @@ for (const cls of classes) {
     failures.push(`${cls.id}: NO AUDIT MODULE - class not audited`)
     continue
   }
-  for (const topic of cls.units.flatMap(u => u.topics)) {
-    for (const t of topic.templates) {
+  for (const topic of cls.units.flatMap(u => u.topics).filter(t => wanted(cls, t))) {
+    if (!topic.templates?.length) failures.push(`${cls.id}/${topic.id}: no templates`)
+    for (const t of topic.templates ?? []) {
       const key = `${topic.id}/${t.id}`
       const label = `${cls.id}/${key}`
       const checker = audit.derive[key]
@@ -95,6 +102,13 @@ for (const cls of classes) {
         else if (p.hint.latex && !katexOk(p.hint.latex)) fail('hint latex does not parse')
         if (!katexOk(p.latex) || (p.answerLatex && !katexOk(p.answerLatex))) fail('problem/answer latex does not parse')
         for (const o of p.options ?? []) if (typeof o !== 'string' && !katexOk(o.latex)) fail(`option latex does not parse: ${o.latex}`)
+        // formula answers: the answer and every wrong choice must parse and render
+        if (p.expr) {
+          for (const f of [p.answer, ...(p.choices ?? [])]) {
+            const l = toLatex(f, p.expr.vars)
+            if (!l || !katexOk(l)) fail(`formula "${f}" does not parse or render`)
+          }
+        }
         // typed mode: the stored answer must pass its own check, wrong options must not
         const typedAnswer = typeof p.answer === 'string' ? p.answer : String(p.answer)
         if (!checkAnswer(typedAnswer, p)) fail(`typed answer "${typedAnswer}" is rejected by its own checker`)
@@ -128,7 +142,7 @@ for (const cls of classes) {
   }
 
   // learn blocks: every topic teaches, and its formulas parse
-  for (const topic of cls.units.flatMap(u => u.topics)) {
+  for (const topic of cls.units.flatMap(u => u.topics).filter(t => wanted(cls, t))) {
     if (!topic.learn?.formulas?.length || !topic.learn?.how?.length) {
       failures.push(`${cls.id}/${topic.id}: missing learn block (formulas + how)`)
       continue
@@ -145,6 +159,10 @@ for (const r of results) {
 if (failures.length) {
   console.log('\nFailures:')
   for (const f of failures) console.log('  - ' + f)
+  process.exit(1)
+}
+if (ONLY && results.length === 0) {
+  console.log(`\nNothing matched --only=${[...ONLY].join(',')}.`)
   process.exit(1)
 }
 console.log(`\nAll ${results.length} templates verified against independent re-derivation.`)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import MathText from './MathText.jsx'
 import Options from './Options.jsx'
+import { useStudyAids } from './Tables.jsx'
 
 function answerDisplay(p) {
   return p.answerLatex ?? String(p.answer)
@@ -9,14 +10,16 @@ function answerDisplay(p) {
 export default function Learn({ cls, topic, onExit, onDrill }) {
   const [examples, setExamples] = useState(() => topic.templates.map(t => t.generate()))
   const [shown, setShown] = useState({})
+  const aids = useStudyAids(cls.units.find(u => u.topics.includes(topic)))
 
   useEffect(() => {
     function onKey(e) {
+      if (aids.open) return
       if (e.key === 'Escape') onExit()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onExit])
+  }, [onExit, aids.open])
 
   function reroll() {
     setExamples(topic.templates.map(t => t.generate()))
@@ -38,6 +41,9 @@ export default function Learn({ cls, topic, onExit, onDrill }) {
           </button>
         </span>
       </header>
+
+      {aids.has && <div className="drill-tools learn-tools">{aids.buttons}</div>}
+      {aids.overlay}
 
       {learn?.formulas?.length > 0 && (
         <section className="learn-section">
@@ -76,7 +82,7 @@ export default function Learn({ cls, topic, onExit, onDrill }) {
             <div key={i} className="example-card">
               {ex.ask && <p className="ask mathx">{ex.ask}</p>}
               {ex.text && <p className="example-text">{ex.text}</p>}
-              <div className={ex.size === 'small' ? 'problem problem-small' : 'problem'}>
+              <div className={ex.size ? `problem problem-${ex.size}` : 'problem'}>
                 <MathText latex={ex.latex} display />
               </div>
               <Options options={ex.options} />

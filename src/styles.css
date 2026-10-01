@@ -424,6 +424,11 @@ input:focus-visible {
   font-size: 1.45rem;
 }
 
+/* a derivation: several aligned lines, read top to bottom */
+.problem-derivation .katex {
+  font-size: 1.2rem;
+}
+
 .drill-sheet.correct .problem {
   color: var(--green);
 }
@@ -897,6 +902,384 @@ input:focus-visible {
   margin-top: 26px;
 }
 
+/* ---------- tables & formula sheet overlays ---------- */
+
+.overlay-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 23px, var(--grid) 23px 24px),
+    var(--paper);
+}
+
+.overlay-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px clamp(16px, 4vw, 28px);
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-raised);
+}
+
+.overlay-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.overlay-tabs button {
+  font-weight: 600;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 7px 12px;
+}
+
+.overlay-tabs button.on {
+  color: var(--paper);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.overlay-body {
+  flex: 1;
+  overflow: auto;
+  padding: 18px clamp(16px, 4vw, 28px) 48px;
+  max-width: 980px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.table-title {
+  font-size: 1.25rem;
+}
+
+.table-note {
+  margin: 6px 0 14px;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.table-scroll {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--paper-raised);
+}
+
+.ptable {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ptable th,
+.ptable td {
+  padding: 4px 9px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ptable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  color: var(--blue);
+  background: var(--paper-raised);
+  border-bottom: 1px solid var(--rule);
+}
+
+.ptable tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  color: var(--blue);
+  background: var(--paper-raised);
+  border-right: 1px solid var(--rule);
+}
+
+.ptable thead th.corner {
+  left: 0;
+  z-index: 3;
+  color: var(--faint);
+  text-align: left;
+  border-right: 1px solid var(--rule);
+}
+
+.ptable tbody tr:nth-child(even) td {
+  background: rgba(101, 143, 190, 0.05);
+}
+
+.ptable td {
+  cursor: pointer;
+}
+
+.ptable th.hit {
+  color: var(--paper);
+  background: var(--blue);
+}
+
+.ptable td.line {
+  background: var(--blue-soft) !important;
+}
+
+.ptable td.here {
+  color: var(--paper);
+  background: var(--blue) !important;
+  font-weight: 600;
+}
+
+.know-card {
+  font: inherit;
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.know-card:hover {
+  border-color: var(--ink-soft);
+}
+
+.know-hidden {
+  margin: 10px 0 4px;
+  color: var(--faint);
+  font-size: 0.85rem;
+}
+
+/* ---------- study guide checklist ---------- */
+
+.guide {
+  margin: 4px 0 14px;
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+
+.guide-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.guide-head h3 {
+  font-size: 0.95rem;
+}
+
+.guide-tools {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.guide-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guide-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px dotted var(--rule);
+  font-size: 0.92rem;
+}
+
+.guide-row:last-child {
+  border-bottom: 0;
+}
+
+.guide-mark {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rule);
+}
+
+.guide-mark.warm {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.guide-mark.hot {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+.guide-mark.mastered {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+.guide-text {
+  flex: 1;
+}
+
+.guide-row .btn {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+/* ---------- formula answers ---------- */
+
+.answer-input.formula {
+  width: min(360px, 62vw);
+}
+
+.expr-preview {
+  min-height: 1.8em;
+  margin-top: -6px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.expr-preview .katex {
+  font-size: 1.15rem;
+  color: var(--ink);
+}
+
+.choice .katex {
+  font-size: 1.05rem;
+}
+
+.choices.wide {
+  grid-template-columns: repeat(2, minmax(150px, 300px));
+}
+
+/* ---------- practice test ---------- */
+
+.drill-rep.over {
+  color: var(--red);
+}
+
+.test-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+.test-nav button {
+  min-width: 34px;
+  height: 34px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.test-nav button.done {
+  color: var(--paper);
+  background: var(--ink-soft);
+  border-color: var(--ink-soft);
+}
+
+.test-nav button.here {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+.test-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.test-confirm {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+.test-review {
+  list-style: none;
+  margin: 18px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.test-review > li {
+  padding: 8px 12px;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--faint);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.test-review > li.ok {
+  border-left-color: var(--green);
+}
+
+.test-review > li.bad {
+  border-left-color: var(--red);
+}
+
+.test-line {
+  font-size: 0.92rem;
+}
+
+.test-mark {
+  display: inline-block;
+  width: 1.4em;
+  font-weight: 600;
+}
+
+.test-review li.ok .test-mark {
+  color: var(--green);
+}
+
+.test-review li.bad .test-mark {
+  color: var(--red);
+}
+
+.test-topic {
+  color: var(--faint);
+  font-size: 0.82rem;
+}
+
+.test-detail {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- derivation lines ---------- */
+
+.derivation {
+  margin: 0 auto;
+  max-width: 60ch;
+  text-align: left;
+}
+
 /* ---------- small screens ---------- */
 
 /* touch devices: problem at the top, the rest of the page is writing room */
@@ -956,6 +1339,10 @@ input:focus-visible {
 
   .problem-small .katex {
     font-size: 1.15rem;
+  }
+
+  .problem-derivation .katex {
+    font-size: 0.98rem;
   }
 
   .drill-foot {

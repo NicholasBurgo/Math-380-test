@@ -1,5 +1,7 @@
 // Independent re-derivations for every Math 3800 generator. See verify.mjs.
 
+import * as test2 from './math3800-test2/index.mjs'
+
 function pcts(s) {
   return [...s.matchAll(/(\d+(?:\.\d+)?)%/g)].map(m => parseFloat(m[1]) / 100)
 }
@@ -92,7 +94,7 @@ function latexValue(al) {
 }
 
 // --- one independent re-derivation per template, keyed topic/template ---
-export const derive = {
+const test1 = {
   'counting/permutation'(p) {
     const [n, r] = ints(p.latex.includes('P_') ? p.latex : '')
     if (p.latex.includes('P_')) return permCount(n, r)
@@ -388,4 +390,7 @@ export const derive = {
   },
 }
 
-export const SAMPLES = { 'counting/codes': 300, 'counting/indistinguishable': 300 }
+// Test 2 checkers live one module per topic in ./math3800-test2/.
+export const derive = { ...test1, ...test2.derive }
+
+export const SAMPLES = { 'counting/codes': 300, 'counting/indistinguishable': 300, ...test2.SAMPLES }

@@ -6,6 +6,7 @@ import independence from './independence.js'
 import bayes from './bayes.js'
 import discretePdf from './discrete-pdf.js'
 import expectation from './expectation.js'
+import test2 from './test2/index.js'
 
 export default {
   id: 'math3800',
@@ -27,5 +28,6 @@ export default {
         expectation,
       ],
     },
+    test2,
   ],
 }

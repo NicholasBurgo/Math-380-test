@@ -19,6 +19,11 @@ npm run dev
 - **Sets**: you drill in sets of 20 reps; each set ends with a summary page (accuracy, best streak, the problems that cost you the most). Summaries are saved as dated "pages" you can see on the class screen.
 - **Mastery heat**: every topic has a temperature (cold / warm / hot / mastered) driven by your current streak on it. Each unit's **Mixed set** feeds you more of whatever is cold.
 - **Spaced return**: a mastered topic untouched for 3+ days gets a "review due" badge.
+- **Formula answers**: derivation drills take a typed formula (`pe^t/(1-qe^t)`, `C(n,x)p^xq^(n-x)`, `1-q^x`), shown live as rendered math and graded by checking it agrees with the answer at several sample points, so any equivalent form is right. Letters typed together split (`pe^t` is p·e^t); `q` stands for 1 − p.
+- **Derivations step by step**: the study guide's "derive the pdf / cdf / MGF" items are drilled one line at a time: the lines so far, then a box to fill. Later lines stay hidden.
+- **Test day conditions**: a unit can carry its formula sheet and printed tables (binomial n = 20, standard normal, chi-squared). Drills and Learn pages for that unit get **Formula sheet** and **Tables** buttons; table answers are graded with the same rounding the tables show.
+- **Study guide checklist**: a unit can list the study guide's "be able to" lines. Opening the unit shows each line with how warm its topics are and a **Drill** button for just those topics, plus the formula sheet with a tap-to-check "know these cold" list.
+- **Practice test**: one question per study-guide line, no hints or right/wrong until you hand it in, the clock running and the sheet and tables at hand. Then every answer is graded, counted toward its topic, and the misses are one tap from a drill.
 
 All stats live in `localStorage`: no server, no account.
 
@@ -28,14 +33,16 @@ All stats live in `localStorage`: no server, no account.
 src/
   classes/          one folder per class (math3800: probability; math223: sets & logic)
   components/       Home, Drill, Learn, Options, MathText (KaTeX)
-  engine/           drill queue, answer checking, stats/heat, topic picking, propositional logic
+  engine/           drill queue, answer checking, stats/heat, topic picking, propositional logic, typed formulas (expr.js)
 scripts/
-  verify.mjs        generator audit harness (npm run verify)
-  audit/            one independent re-derivation module per class
+  verify.mjs        generator audit harness (npm run verify; npm run verify -- --only=topic,topic)
+  audit/            one independent re-derivation module per class (Math 3800 Test 2: one per topic)
+docs/               crash courses: Math 223 Test 1, Math 3800 Test 2
 ```
 
 - A **class** = `{ id, name, term, units: [...] }`
 - A **unit** = one test's material = `{ id, name, detail?, topics: [...] }`: each unit gets its own Mixed set button
+  - optional `guide: [{ text, short, topics: [ids] }]` (the study guide checklist and practice test), `sheet: { given, maybe, know }` (formula sheet lines `{ label, latex }`), `tables: ['binomial', 'normal', 'chi2']` with `printedTables()` (see `src/classes/math3800/test2/index.js`)
 - A **topic** = one skill = `{ id, name, description, learn, templates: [...] }`
   - `learn` = `{ formulas: [{ label, latex }], how: [lines] }` powers the Learn page
 - A **template** = one problem generator:
@@ -49,6 +56,8 @@ scripts/
   - `ask` / `text`: instruction line and word-problem body above the math
   - `hint`: `{ latex, text }` shown on a miss (required; the audit enforces it)
   - `distractors`: wrong options for Choices mode, built from common mistakes (generic perturbations fill any gaps)
+  - `size`: `'small'` or `'derivation'` for long or multi-line math
+  - formula answers: build the problem with `formula({ answer, vars, points, choices })` from `src/classes/math3800/test2/util.js` (it sets `accept`, `expr` and `answerLatex`); `points` are variable values where every wrong choice differs from the answer
 
 ## Adding a class
 
