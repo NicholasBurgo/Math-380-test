@@ -264,9 +264,12 @@ const SETTINGS = [
 // r = 1, so "negative binomial" is never offered as wrong for a geometric X.
 const wrongFor = right => shuffle(LABELS.filter(l => l !== right && !(right === GEO && l === NEG)))
 
-// ---------- label with parameters ----------
+// ---------- label with parameters, and the possible values ----------
 
 const pfrac = (a, b) => `${a}/${b}`
+// A hypergeometric sample's population and its possible values: at least the
+// successes forced once the failures run out, at most min(n, r).
+const hyper = (N, r, n) => ({ N, r, n, support: [Math.max(0, n - (N - r)), Math.min(n, r)] })
 const PARAMS = [
   () => {
     const p = P()
@@ -276,6 +279,7 @@ const PARAMS = [
       text: `Each chip from an assembly line is defective with probability ${p}, independently of the others. An inspector checks the next ${n} chips. X is the number of defective chips among them.`,
       right: `${BIN}: n = ${n}, p = ${p}`,
       wrong: [`${BIN}: n = ${n}, p = ${dec(1 - p)}`, `${NEG}: r = ${n}, p = ${p}`, `${POI}: k = ${dec(n * p)}`],
+      support: [0, n],
     }
   },
   () => {
@@ -286,6 +290,7 @@ const PARAMS = [
       text: `A basketball player makes each free throw with probability ${p}, independently of her other shots. She takes ${n} free throws. X is the number she makes.`,
       right: `${BIN}: n = ${n}, p = ${p}`,
       wrong: [`${BIN}: n = ${n}, p = ${dec(1 - p)}`, `${NEG}: r = ${n}, p = ${p}`, `${GEO}: p = ${p}`],
+      support: [0, n],
     }
   },
   () => {
@@ -299,6 +304,7 @@ const PARAMS = [
       right: `${BIN}: n = ${n}, p = ${pfrac(R, R + B)}`,
       wrong: [`${HYP}: N = ${R + B}, r = ${R}, n = ${n}`, `${BIN}: n = ${n}, p = ${pfrac(B, R + B)}`, `${BIN}: n = ${R + B}, p = ${pfrac(R, R + B)}`],
       why: 'The marble is put back, so every draw has the same chance of red: binomial, not hypergeometric.',
+      support: [0, n],
     }
   },
   () => {
@@ -309,6 +315,7 @@ const PARAMS = [
       text: `Each well an oil company drills strikes oil with probability ${p}, independently. X is the number of wells drilled to get the ${ord(r)} strike.`,
       right: `${NEG}: r = ${r}, p = ${p}`,
       wrong: [`${BIN}: n = ${r}, p = ${p}`, `${GEO}: p = ${p}`, `${NEG}: r = ${r}, p = ${dec(1 - p)}`],
+      support: [r, Infinity],
     }
   },
   () => {
@@ -319,6 +326,7 @@ const PARAMS = [
       text: `Of the lots a factory produces, ${pct}% are defective, independently of each other. Lots are produced until the ${ord(r)} defective lot. X is the number of lots produced.`,
       right: `${NEG}: r = ${r}, p = ${dec(pct / 100)}`,
       wrong: [`${BIN}: n = ${r}, p = ${dec(pct / 100)}`, `${NEG}: r = ${r}, p = ${dec(1 - pct / 100)}`, `${GEO}: p = ${dec(pct / 100)}`],
+      support: [r, Infinity],
     }
   },
   () => {
@@ -330,6 +338,7 @@ const PARAMS = [
       text: `A shipment of ${N} parts contains ${r} defective ones. An inspector tests ${n} of the parts, chosen at random without replacement. X is the number of defective parts tested.`,
       right: `${HYP}: N = ${N}, r = ${r}, n = ${n}`,
       wrong: [`${BIN}: n = ${n}, p = ${pfrac(r, N)}`, `${HYP}: N = ${N}, r = ${N - r}, n = ${n}`, `${HYP}: N = ${N - r}, r = ${r}, n = ${n}`],
+      ...hyper(N, r, n),
     }
   },
   () => {
@@ -342,6 +351,7 @@ const PARAMS = [
       text: `A committee of ${n} is chosen at random from a club of ${W} women and ${M} men. X is the number of women on the committee.`,
       right: `${HYP}: N = ${W + M}, r = ${W}, n = ${n}`,
       wrong: [`${HYP}: N = ${W + M}, r = ${M}, n = ${n}`, `${HYP}: N = ${M}, r = ${W}, n = ${n}`, `${BIN}: n = ${n}, p = ${pfrac(W, W + M)}`],
+      ...hyper(W + M, W, n),
     }
   },
   () => {
@@ -354,6 +364,25 @@ const PARAMS = [
       right: `${HYP}: N = ${N}, r = ${r}, n = ${n}`,
       wrong: [`${BIN}: n = ${n}, p = ${pfrac(r, N)}`, `${HYP}: N = ${N}, r = ${N - r}, n = ${n}`, `${POI}: k = ${dec((n * r) / N)}`],
       why: 'The sample is checked without putting bottles back, so it is hypergeometric (the binomial is only an approximation here).',
+      ...hyper(N, r, n),
+    }
+  },
+  () => {
+    // a sample big enough that some successes are forced, like the notes' N = 15, r = 6, n = 12
+    let N
+    let r
+    let n
+    do {
+      N = randInt(12, 20)
+      r = randInt(4, 8)
+      n = randInt(N - r + 1, N - 2)
+    } while (N - n === n)
+    return {
+      label: HYP,
+      text: `A box of ${N} batteries holds ${r} dead ones. Then ${n} of them are taken out at random, without replacement. X is the number of dead batteries taken out.`,
+      right: `${HYP}: N = ${N}, r = ${r}, n = ${n}`,
+      wrong: [`${HYP}: N = ${N}, r = ${N - r}, n = ${n}`, `${BIN}: n = ${n}, p = ${pfrac(r, N)}`, `${HYP}: N = ${N}, r = ${r}, n = ${N - n}`],
+      ...hyper(N, r, n),
     }
   },
   () => {
@@ -367,6 +396,8 @@ const PARAMS = [
         text: `A help line gets an average of ${l} calls per hour. X is the number of calls in ${an(w)} ${w}-minute window.`,
         right: `${POI}: k = ${dec(k)}`,
         wrong: [`${POI}: k = ${l}`, `${POI}: k = ${l * w}`, `${POI}: k = ${w}/60`],
+        support: [0, Infinity],
+        cap: l,
       }
     }
   },
@@ -379,6 +410,8 @@ const PARAMS = [
       text: `A copper wire has an average of ${l} flaws per km. X is the number of flaws in ${an(w)} ${w} m piece of the wire.`,
       right: `${POI}: k = ${dec(k)}`,
       wrong: [`${POI}: k = ${l}`, `${POI}: k = ${l * w}`, `${POI}: k = ${dec(w / 1000)}`],
+      support: [0, Infinity],
+      cap: l,
     }
   },
   () => {
@@ -389,14 +422,60 @@ const PARAMS = [
       text: `A textbook has an average of ${l} typos per page. X is the number of typos in ${an(s)} ${s}-page chapter.`,
       right: `${POI}: k = ${dec(l * s)}`,
       wrong: [`${POI}: k = ${l}`, `${POI}: k = ${s}`, `${BIN}: n = ${s}, p = ${l}`],
+      support: [0, Infinity],
+      cap: s,
     }
   },
 ]
 
+// A set of whole numbers as it would be written: {0, 1, …, 12}, {3, 4, 5, 6}, {2, 3, 4, …}
+function setTex([lo, hi]) {
+  if (hi === Infinity) return `\\{${lo}, ${lo + 1}, ${lo + 2}, \\ldots\\}`
+  if (hi - lo <= 4) return `\\{${Array.from({ length: hi - lo + 1 }, (_, i) => lo + i).join(', ')}\\}`
+  return `\\{${lo}, ${lo + 1}, \\ldots, ${hi}\\}`
+}
+
+// Wrong sets of values, the usual mix-ups first: starting at 1, no end (or an
+// end) where there is none, the sample size or the successes as the only limit.
+function valueSlips(s) {
+  const [lo, hi] = s.support
+  if (s.label === BIN) return [[1, hi], [0, Infinity], [0, hi - 1]]
+  if (s.label === NEG) return [[0, Infinity], [1, Infinity], [0, lo]]
+  if (s.label === POI) return [[1, Infinity], [0, s.cap], [1, s.cap]]
+  return [[0, s.n], [0, s.r], [lo, s.n], [1, hi], [0, s.N], [lo + 1, hi]]
+}
+
+// Why X runs over exactly these values.
+function valuesHint(s) {
+  const [lo, hi] = s.support
+  if (s.label === BIN) {
+    return { latex: 'x = 0, 1, \\ldots, n', text: `A fixed n = ${hi} trials: X can be anything from 0 (no successes) to ${hi} (all of them).` }
+  }
+  if (s.label === NEG) {
+    return {
+      latex: 'x = r, r + 1, r + 2, \\ldots',
+      text: `X counts trials. Getting ${lo} successes takes at least ${lo} trials, and there is no upper limit on how long it can take.`,
+    }
+  }
+  if (s.label === POI) {
+    return {
+      latex: 'x = 0, 1, 2, \\ldots',
+      text: 'X counts events in an interval: 0, 1, 2, ... with no upper limit. The rate is an average, not a cap.',
+    }
+  }
+  return {
+    latex: '\\max(0,\\, n-(N-r)) \\le x \\le \\min(n,\\, r)',
+    text:
+      lo > 0
+        ? `N = ${s.N}, r = ${s.r}, n = ${s.n}. Only N − r = ${s.N - s.r} failures exist, so a sample of ${s.n} holds at least ${s.n} − ${s.N - s.r} = ${lo} successes; at most min(${s.n}, ${s.r}) = ${hi}.`
+        : `N = ${s.N}, r = ${s.r}, n = ${s.n}. There are enough failures to fill the sample, so X can be 0; at most min(${s.n}, ${s.r}) = ${hi}.`,
+  }
+}
+
 export default {
   id: 'which-discrete',
   name: 'Which distribution?',
-  description: '§3.4–3.8: label the scenario: binomial, negative binomial, geometric, hypergeometric or Poisson.',
+  description: '§3.4–3.8: label the scenario (binomial, negative binomial, hypergeometric, Poisson), its parameters, and the possible values of X.',
   learn: {
     formulas: [
       { label: 'Binomial: successes in a fixed number n of independent trials', latex: 'f(x) = \\binom{n}{x}p^xq^{n-x}' },
@@ -404,6 +483,10 @@ export default {
       { label: 'Geometric: negative binomial with r = 1, trials to the first success', latex: 'f(x) = q^{x-1}p' },
       { label: 'Hypergeometric: successes in a sample drawn without replacement', latex: 'f(x) = \\frac{\\binom{r}{x}\\binom{N-r}{n-x}}{\\binom{N}{n}}' },
       { label: 'Poisson: events in an interval, k = λs', latex: 'f(x) = \\frac{e^{-k}k^x}{x!}' },
+      {
+        label: 'Possible values of X',
+        latex: '\\begin{gathered} \\text{binomial: } 0, \\ldots, n \\qquad \\text{negative binomial: } r, r+1, \\ldots \\\\ \\text{hypergeometric: } \\max(0, n-(N-r)), \\ldots, \\min(n, r) \\qquad \\text{Poisson: } 0, 1, 2, \\ldots \\end{gathered}',
+      },
     ],
     how: [
       'Ask two questions: what does X count, and what is fixed in advance?',
@@ -412,6 +495,7 @@ export default {
       'A sample from a finite group, without replacement (a hand of cards, a committee, a batch inspected), X counts the successes in it: hypergeometric.',
       'An average rate per hour, per page, per mile, and X counts events in an interval: Poisson, with k = λs.',
       'Watch the words: "until" or "needed to" means trials are counted; "out of the next n" means n is fixed; "different" or "at once" means no replacement.',
+      'Possible values (HW 6): binomial 0, 1, …, n; negative binomial r, r + 1, … with no end; hypergeometric from max(0, n − (N − r)) to min(n, r); Poisson 0, 1, 2, … with no end.',
     ],
   },
   templates: [
@@ -474,6 +558,25 @@ export default {
           ...pick,
           placeholder: 'a, b, c or d',
           hint: { latex: h.latex, text: s.why ?? h.text },
+        }
+      },
+    },
+    {
+      id: 'values',
+      generate() {
+        for (;;) {
+          const s = choice(PARAMS)()
+          const right = setTex(s.support)
+          const wrong = [...new Set(valueSlips(s).filter(([lo, hi]) => lo <= hi).map(setTex))].filter(w => w !== right)
+          if (wrong.length < 3) continue
+          return {
+            ask: 'What are the possible values of X?',
+            text: s.text,
+            latex: 'X \\in \\,?',
+            ...lettered({ latex: right }, shuffle(wrong.slice(0, 3)).map(latex => ({ latex }))),
+            placeholder: 'a, b, c or d',
+            hint: valuesHint(s),
+          }
         }
       },
     },

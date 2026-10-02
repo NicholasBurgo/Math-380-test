@@ -2,9 +2,12 @@ import { choice, randInt } from '../../../engine/rand.js'
 import { toLatex } from '../../../engine/expr.js'
 import { dec, formula, num, probs, tolFor } from './util.js'
 import { FAMILIES, condTex, expExponent, gridPoints, gridStep, paren, pdfCases, polyExpr, stack, work } from './continuous-pdf.js'
+import { exactTex, finalTex, pdfTex, someDiscrete, termTex, total } from './continuous-expectation.js'
 
-// §4.1: F(x) = P(X ≤ x) = ∫ f(t) dt from −∞ to x, and back again: f = F'.
-// The middle piece of F is typed as a formula; values of F and f are numbers.
+// §3.3, §4.1: F(x) = P(X ≤ x), and back again. Discrete: F adds up f(t) for
+// t ≤ x, and f(x) is the jump F makes at x. Continuous: F(x) = ∫ f(t) dt from
+// −∞ to x, and f = F'. The middle piece of a continuous F is typed as a
+// formula; values of F and f are numbers.
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a))
 const pow = (n, v = 'x') => (n === 1 ? v : `${v}^${n}`)
@@ -164,14 +167,35 @@ function givenCdf() {
 
 const HOW_F = 'F(x) is the area to the left of x. Integrate f from the left end of the support up to x; left of the support F = 0, past it F = 1.'
 
+// ---------- discrete ----------
+
+// The running sums of the weights: F at xs[i] is cum[i]/D.
+const runningSums = ws => ws.map((_, i) => total(ws.slice(0, i + 1)))
+
+// A discrete cdf as printed: a step function in cases form, or a table of F values.
+function stepCdf(d, cum) {
+  const F = i => pdfTex(d, cum[i])
+  const last = d.xs.length - 1
+  if (Math.random() < 0.35) {
+    const cols = 'c'.repeat(d.xs.length)
+    return `\\begin{array}{c|${cols}} x & ${d.xs.join(' & ')} \\\\ \\hline F(x) & ${d.xs.map((_, i) => F(i)).join(' & ')} \\end{array}`
+  }
+  const rows = [`0 & x < ${d.xs[0]}`]
+  for (let i = 0; i < last; i++) rows.push(`${F(i)} & ${d.xs[i]} \\le x < ${d.xs[i + 1]}`)
+  rows.push(`1 & x \\ge ${d.xs[last]}`)
+  return `F(x) = \\begin{cases} ${rows.join(' \\\\ ')} \\end{cases}`
+}
+
 export default {
   id: 'continuous-cdf',
-  name: 'Continuous cdfs',
-  description: '§4.1: derive F(x) from f(x), and f(x) from F(x).',
+  name: 'pdf ↔ cdf',
+  description: '§3.3, §4.1: F(x) = Σ f(t) or ∫ f(t) dt, and back.',
   learn: {
     formulas: [
-      { label: 'cdf', latex: 'F(x) = P(X \\le x) = \\int_{-\\infty}^{x} f(t)\\,dt' },
-      { label: 'pdf from cdf', latex: "f(x) = F'(x)" },
+      { label: 'Discrete cdf', latex: 'F(x) = P(X \\le x) = \\sum_{t \\le x} f(t)' },
+      { label: 'Discrete pdf from cdf', latex: 'f(x) = F(x) - F(\\text{previous value})' },
+      { label: 'Continuous cdf', latex: 'F(x) = P(X \\le x) = \\int_{-\\infty}^{x} f(t)\\,dt' },
+      { label: 'Continuous pdf from cdf', latex: "f(x) = F'(x)" },
       { label: 'Probabilities from F', latex: 'P(a < X \\le b) = F(b) - F(a), \\quad P(X > a) = 1 - F(a)' },
       {
         label: 'Support [a, b]',
@@ -180,7 +204,11 @@ export default {
       { label: 'Exponential', latex: 'f(x) = \\tfrac{1}{\\beta}e^{-x/\\beta} \\;\\Rightarrow\\; F(x) = 1 - e^{-x/\\beta}, \\; x > 0' },
     ],
     how: [
-      'F(x) is the area under f to the left of x. Use t inside the integral, since x is the upper limit.',
+      'Discrete: F(x) adds f(t) for every value t ≤ x. For f(x) = x/10, x = 1, 2, 3, 4: F(2) = 0.1 + 0.2 = 0.3.',
+      'A discrete F is a staircase: flat between values (F(2.5) = F(2)), 0 below the smallest value, 1 at and past the largest.',
+      'Going back, f at a value is the jump F makes there: f(3) = F(3) − F(2) = 0.6 − 0.3 = 0.3. At the first value, f = F there (the step before is 0).',
+      'The geometric F(x) = 1 − qˣ is the discrete cdf you derive: sum the geometric series q^(t−1)p from t = 1 to x.',
+      'Continuous: F(x) is the area under f to the left of x. Use t inside the integral, since x is the upper limit.',
       'Start the integral at the left end of the support: f is 0 before it. Left of the support F = 0; past the right end F = 1.',
       'Lead example: F(x) = ∫ from 0.1 to x of (12.5t − 1.25) dt = 6.25x² − 1.25x + 0.0625 for 0.1 ≤ x ≤ 0.5.',
       'Check your F: it must be 0 at the left end and 1 at the right end (6.25(0.25) − 0.625 + 0.0625 = 1).',
@@ -341,6 +369,113 @@ export default {
             text: 'F already holds the area to the left. Subtract two F values for a range, or take 1 − F for a right tail.',
           },
           distractors: probs(...wrong),
+        }
+      },
+    },
+    {
+      id: 'discrete-cdf',
+      generate() {
+        const d = someDiscrete()
+        const { xs, ws, D } = d
+        const last = xs.length - 1
+        const where = choice(['at', 'at', 'at', 'at', 'between', 'between', 'below', 'past'])
+        let x0
+        if (where === 'at') x0 = choice(xs.slice(0, last))
+        else if (where === 'between') {
+          const i = randInt(0, last - 1)
+          x0 = Number(dec((xs[i] + xs[i + 1]) / 2))
+        } else if (where === 'below') x0 = xs[0] - choice([0.5, 1])
+        else x0 = xs[last] + choice([0.5, 1])
+        const upTo = xs.map((_, i) => i).filter(i => xs[i] <= x0)
+        const S = total(upTo.map(i => ws[i]))
+        const ans = S / D
+        const at = xs.indexOf(x0)
+        // slips: P(X < x₀) (dropping x₀ itself), P(X = x₀), 1 − F(x₀)
+        const wrong = [(S - (at >= 0 ? ws[at] : 0)) / D, at >= 0 ? ws[at] / D : 0, 1 - ans]
+        let shown
+        if (where === 'below') {
+          shown = `${x0} \\text{ is below every value of } X, \\text{ so } F(${x0}) = 0`
+          // F at the first value or two, as if x₀ reached them
+          wrong.push(ws[0] / D, (ws[0] + ws[1]) / D)
+        } else if (where === 'past') {
+          shown = `${x0} \\text{ is past every value of } X, \\text{ so } F(${x0}) = 1`
+          // stopping at the value before the last, or taking only the last value
+          wrong.push((D - ws[last]) / D, ws[last] / D)
+        } else {
+          // F(2.5) = F(2) = f(1) + f(2) = 0.1 + 0.2 = 0.3
+          const top = xs[upTo[upTo.length - 1]]
+          const parts = [`F(${x0})`, `F(${top})`, upTo.map(i => `f(${xs[i]})`).join(' + '), upTo.map(i => termTex(d, ws[i])).join(' + ')]
+          if (!d.table && upTo.length > 1 && exactTex(S, D) !== `\\frac{${S}}{${D}}`) parts.push(`\\frac{${S}}{${D}}`)
+          const steps = parts.filter((s, k) => s !== parts[k - 1] && s !== exactTex(S, D))
+          shown = `${work(steps.join(' = '))} = ${finalTex(S, D)}`
+        }
+        return {
+          ask: 'Find the cdf value F(x₀) = P(X ≤ x₀).',
+          latex: stack(d.shown, `F(${x0}) = \\,?`),
+          size: 'small',
+          answer: ans,
+          answerLatex: shown,
+          placeholder: 'e.g. 0.3',
+          tolerance: ans === 0 || ans === 1 ? 1e-6 : tolFor(ans),
+          hint: {
+            latex: 'F(x) = P(X \\le x) = \\sum_{t \\le x} f(t)',
+            text: 'Add f(t) for every value t up to and including x₀. Between values F stays flat; below the smallest value F = 0, past the largest F = 1.',
+          },
+          distractors: wrong.filter(w => Number.isFinite(w) && w >= 0 && w <= 1 && Math.abs(w - ans) > 1e-9),
+        }
+      },
+    },
+    {
+      id: 'discrete-pdf',
+      generate() {
+        const d = someDiscrete()
+        const { xs, ws, D } = d
+        const cum = runningSums(ws)
+        const last = xs.length - 1
+        const F = i => pdfTex(d, cum[i])
+        let q
+        if (Math.random() < 0.7) {
+          const i = randInt(0, last)
+          q = {
+            target: `f(${xs[i]})`,
+            ask: 'Find the pdf value f(x₀) = P(X = x₀) from the cdf.',
+            top: ws[i],
+            steps: i === 0 ? `f(${xs[0]}) = F(${xs[0]}) - 0` : `f(${xs[i]}) = F(${xs[i]}) - F(${xs[i - 1]}) = ${F(i)} - ${F(i - 1)}`,
+            // slips: F(x₀) itself, the jump at the next value, 1 − F(x₀)
+            wrong: [cum[i] / D, i < last ? ws[i + 1] / D : NaN, 1 - cum[i] / D],
+            hint: {
+              latex: 'f(x) = F(x) - F(\\text{previous value})',
+              text: 'f at a value is the jump F makes there: F at that value minus F at the value before it (0 before the first). F(x₀) alone adds up everything through x₀.',
+            },
+          }
+        } else {
+          const i = randInt(0, last - 1)
+          const j = randInt(i + 1, last)
+          const target = `P(${xs[i]} < X \\le ${xs[j]})`
+          q = {
+            target,
+            ask: 'Use the cdf to find the probability.',
+            top: cum[j] - cum[i],
+            steps: `${target} = F(${xs[j]}) - F(${xs[i]}) = ${F(j)} - ${F(i)}`,
+            // slips: F(b) alone, P(a ≤ X ≤ b) (keeping the jump at a), P(a < X < b)
+            wrong: [cum[j] / D, (cum[j] - cum[i] + ws[i]) / D, (cum[j - 1] - cum[i]) / D],
+            hint: {
+              latex: 'P(a < X \\le b) = F(b) - F(a)',
+              text: 'F(b) holds everything up to and including b. Subtracting F(a) takes away a and everything below it, so a itself is not counted.',
+            },
+          }
+        }
+        const ans = q.top / D
+        return {
+          ask: q.ask,
+          latex: stack(stepCdf(d, cum), `${q.target} = \\,?`),
+          size: 'small',
+          answer: ans,
+          answerLatex: `${work(q.steps)} = ${finalTex(q.top, D)}`,
+          placeholder: 'e.g. 0.3',
+          tolerance: tolFor(ans),
+          hint: q.hint,
+          distractors: probs(...q.wrong, 1 - ans),
         }
       },
     },

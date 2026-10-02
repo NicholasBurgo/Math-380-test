@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { classes } from '../classes/index.js'
 import { getSkill, heatOf, reviewDue, getPages } from '../engine/stats.js'
+import { guideTopics } from '../engine/guide.js'
 import { useStudyAids } from './Tables.jsx'
 
 const HEAT_ORDER = ['cold', 'warm', 'hot', 'mastered']
@@ -123,7 +124,6 @@ function UnitBlock({ cls, unit, onDrill, onLearn, onTest }) {
 // topics are (the coldest one counts), and a mixed set of just those topics.
 function Guide({ cls, unit, onDrill, onTest }) {
   const aids = useStudyAids(unit, { know: true })
-  const byId = Object.fromEntries(unit.topics.map(t => [t.id, t]))
   return (
     <div className="guide">
       <div className="guide-head">
@@ -137,7 +137,7 @@ function Guide({ cls, unit, onDrill, onTest }) {
       </div>
       <ul className="guide-list">
         {unit.guide.map((g, i) => {
-          const topics = g.topics.map(id => byId[id]).filter(t => t?.templates?.length)
+          const topics = guideTopics(unit, g)
           const heat = topics.length
             ? topics.map(t => heatOf(getSkill(cls.id, t.id))).sort((a, b) => HEAT_ORDER.indexOf(a) - HEAT_ORDER.indexOf(b))[0]
             : 'cold'

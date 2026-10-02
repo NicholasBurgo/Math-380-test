@@ -2,9 +2,10 @@ import { randInt, choice, shuffle } from '../../../engine/rand.js'
 import { randProbs } from '../util.js'
 import { derivation, dec, lettered, num } from './util.js'
 
-// Moments from a moment generating function: the notes' rule E[X^k] = m^(k)(0),
-// on the MGFs the course meets (geometric, binomial, a finite pmf, gamma,
-// exponential, chi-squared, normal), plus naming the distribution an MGF belongs to.
+// Moments from a given moment generating function: the notes' rule
+// E[X^k] = m^(k)(0), on the MGFs the course meets (geometric, a finite pmf,
+// gamma, exponential, chi-squared, normal), plus naming the distribution an MGF
+// belongs to. The review says the test's MGF will not be binomial, so it is left out.
 
 // The moments a problem can ask for, as written under the MGF.
 const ASK = { mean: 'E[X]', second: 'E[X^2]', var: '\\operatorname{Var}X' }
@@ -120,25 +121,10 @@ const IDENTIFY = {
     return {
       mgf: `\\frac{${P}e^t}{1 - ${Q}e^t}`,
       right: `geometric with p = ${P}`,
-      wrong: [`geometric with p = ${Q}`, `binomial with n = 1 and p = ${P}`, `exponential with β = ${dec(1 / p)}`],
+      wrong: [`geometric with p = ${Q}`, `normal with μ = ${dec(1 / p)} and σ² = ${dec((1 - p) / (p * p))}`, `exponential with β = ${dec(1 / p)}`],
       hint: {
         latex: '\\frac{pe^t}{1 - qe^t} \\;\\text{ is geometric}',
-        text: `A fraction with pe^t on top and 1 − qe^t below is the geometric MGF. p is the number on top (${P}); the number subtracted below is q = 1 − p = ${Q}.`,
-      },
-    }
-  },
-  binomial() {
-    const n = randInt(3, 15)
-    const p = choice([0.1, 0.2, 0.25, 0.3, 0.4, 0.6, 0.7, 0.75, 0.8, 0.9])
-    const P = dec(p)
-    const Q = dec(1 - p)
-    return {
-      mgf: `(${Q} + ${P}e^t)^{${n}}`,
-      right: `binomial with n = ${n} and p = ${P}`,
-      wrong: [`binomial with n = ${n} and p = ${Q}`, `geometric with p = ${P}`, `normal with μ = ${num(n * p)} and σ² = ${num(n * p * (1 - p))}`],
-      hint: {
-        latex: '(q + pe^t)^n \\;\\text{ is binomial}',
-        text: `The power is n = ${n} and the coefficient of e^t is p = ${P}. A normal with the same mean np and variance npq has a different MGF, so it is a different distribution.`,
+        text: `A fraction with pe^t on top and 1 − qe^t below is the geometric MGF. p is the number on top (${P}); the number subtracted below is q = 1 − p = ${Q}. A normal with the same mean 1/p and variance q/p² has a different MGF.`,
       },
     }
   },
@@ -264,17 +250,14 @@ const WHICH = [
 
 export default {
   id: 'mgf',
-  name: 'Moment generating functions',
-  description: '§3.4, §4.2–4.4: moments from an MGF, discrete or continuous.',
+  name: 'MGFs: mean and variance from a given MGF',
+  description: '§3.4, §4.2–4.4: E(Xⁿ) is the n-th derivative of m_X(t) at t = 0.',
   learn: {
     formulas: [
       { label: 'Definition', latex: 'm_X(t) = E[e^{tX}] = \\sum_x e^{tx}f(x) \\;\\text{ or }\\; \\int_{-\\infty}^{\\infty} e^{tx}f(x)\\,dx' },
       { label: 'Moments', latex: 'E[X^k] = \\frac{d^k m_X(t)}{dt^k}\\bigg|_{t=0}, \\qquad m_X(0) = 1' },
       { label: 'Mean and variance', latex: "E[X] = m_X'(0), \\quad \\operatorname{Var}X = m_X''(0) - [m_X'(0)]^2" },
-      {
-        label: 'Geometric and binomial (q = 1 − p)',
-        latex: '\\frac{pe^t}{1 - qe^t}: \\; \\mu = \\frac{1}{p},\\; \\sigma^2 = \\frac{q}{p^2} \\qquad (q + pe^t)^n: \\; \\mu = np,\\; \\sigma^2 = npq',
-      },
+      { label: 'Geometric (q = 1 − p)', latex: '\\frac{pe^t}{1 - qe^t}: \\; \\mu = \\frac{1}{p},\\; \\sigma^2 = \\frac{q}{p^2}' },
       {
         label: 'Gamma (exponential: α = 1; chi-squared: β = 2, α = γ/2)',
         latex: '(1 - \\beta t)^{-\\alpha}: \\; \\mu = \\alpha\\beta,\\; \\sigma^2 = \\alpha\\beta^2',
@@ -285,8 +268,8 @@ export default {
       'Each derivative of m_X(t) = E[e^(tX)] brings down one more factor of X. At t = 0, e^(tX) = 1, so m′(0) = E[X], m″(0) = E[X²], m‴(0) = E[X³].',
       'Variance takes both: Var X = m″(0) − [m′(0)]². m″(0) by itself is E[X²], not the variance.',
       'A finite sum like 0.2 + 0.5e^t + 0.3e^(2t) is Σ e^(tx) f(x): each exponent is a value x and its coefficient is f(x). So E[X] = 0(0.2) + 1(0.5) + 2(0.3).',
-      'Powers like (q + pe^t)^n or (1 − βt)^(−α): chain rule, then put t = 0, where the inside equals 1.',
-      'Know the families to check your answer: pe^t/(1 − qe^t) is geometric, (q + pe^t)^n binomial, (1 − βt)^(−α) gamma (exponential if α = 1, chi-squared with γ = 2α if β = 2), e^(μt + σ²t²/2) normal.',
+      'A quotient like pe^t/(1 − qe^t): quotient rule. A power like (1 − βt)^(−α): chain rule. Then put t = 0, where 1 − q = p and 1 − βt = 1.',
+      'Know the families to check your answer: pe^t/(1 − qe^t) is geometric, (1 − βt)^(−α) gamma (exponential if α = 1, chi-squared with γ = 2α if β = 2), e^(μt + σ²t²/2) normal.',
       'The MGF determines the distribution: 0.4e^t/(1 − 0.6e^t) is geometric with p = 0.4. Matching only the mean and variance is not enough.',
     ],
   },
@@ -338,61 +321,6 @@ export default {
           answer: by.ans,
           answerLatex: by.shown,
           placeholder: 'e.g. 2.5',
-          tolerance: tolM(by.ans),
-          hint: by.hint,
-          distractors: by.wrong.filter(w => Math.abs(w - by.ans) > 1e-9),
-        }
-      },
-    },
-    {
-      id: 'binomial',
-      generate() {
-        const n = randInt(4, 20)
-        const p = choice([0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.9])
-        const q = 1 - p
-        const P = dec(p)
-        const Q = dec(q)
-        const inner = Math.random() < 0.7 ? `${Q} + ${P}e^t` : `${P}e^t + ${Q}`
-        const mean = n * p
-        const second = n * (n - 1) * p * p + n * p
-        const v = n * p * q
-        const what = choice(['mean', 'second', 'var'])
-        const by = {
-          mean: {
-            ans: mean,
-            shown: `m_X'(t) = ${n}(${inner})^{${n - 1}}(${P}e^t) \\;\\Rightarrow\\; m_X'(0) = ${n}(${P}) = ${num(mean)}`,
-            wrong: [n * q, n * p * p, v],
-            hint: {
-              latex: "m_X'(t) = n(q + pe^t)^{n-1}pe^t \\;\\Rightarrow\\; m_X'(0) = np",
-              text: `Binomial MGF (q + pe^t)^n with n = ${n} and p = ${P}, the coefficient of e^t. Chain rule, then t = 0, where q + p = 1.`,
-            },
-          },
-          second: {
-            ans: second,
-            shown: `m_X''(0) = n(n - 1)p^2 + np = ${n}(${n - 1})(${P})^2 + ${num(mean)} = ${num(second)}`,
-            wrong: [v, mean * mean, n * (n - 1) * p * p],
-            hint: {
-              latex: "m_X''(t) = n(n-1)(q + pe^t)^{n-2}(pe^t)^2 + n(q + pe^t)^{n-1}pe^t",
-              text: 'Product rule on n(q + pe^t)^(n−1)pe^t, then t = 0: n(n − 1)p² + np. That is E[X²]; do not subtract anything.',
-            },
-          },
-          var: {
-            ans: v,
-            shown: varLine(second, mean, v),
-            wrong: [second, mean, n * p * p],
-            hint: {
-              latex: "\\operatorname{Var}X = m_X''(0) - [m_X'(0)]^2 = n(n-1)p^2 + np - (np)^2 = npq",
-              text: `Subtract the squared mean from m″(0). For a binomial MGF this always simplifies to npq, here n = ${n}, p = ${P}, q = ${Q}.`,
-            },
-          },
-        }[what]
-        return {
-          ask: 'X has this moment generating function.',
-          latex: show(`(${inner})^{${n}}`, ASK[what]),
-          size: 'small',
-          answer: by.ans,
-          answerLatex: by.shown,
-          placeholder: 'e.g. 4.8',
           tolerance: tolM(by.ans),
           hint: by.hint,
           distractors: by.wrong.filter(w => Math.abs(w - by.ans) > 1e-9),

@@ -39,14 +39,13 @@ const pw = (p, k) => `(${dec(p)})^{${k}}`
 export default {
   id: 'binomial',
   name: 'Binomial distribution',
-  description: '§3.5: exactly, at most, at least; mean and variance; the binomial theorem.',
+  description: '§3.5: exactly, at most, at least; mean and variance.',
   learn: {
     formulas: [
       { label: 'pdf (q = 1 − p)', latex: 'f(x) = \\binom{n}{x}p^x q^{n-x}, \\quad x = 0, 1, \\ldots, n' },
       { label: 'Binomial coefficient', latex: '\\binom{n}{x} = \\frac{n!}{x!\\,(n-x)!}' },
       { label: 'At least one', latex: 'P(X \\ge 1) = 1 - P(X = 0) = 1 - q^n' },
       { label: 'Mean and variance', latex: 'E[X] = np, \\quad \\operatorname{Var}X = npq, \\quad \\sigma = \\sqrt{npq}' },
-      { label: 'Binomial theorem', latex: '(a + b)^n = \\sum_{k=0}^{n}\\binom{n}{k}a^k b^{n-k}' },
     ],
     how: [
       'Binomial: a fixed number n of independent trials, each a success with the same probability p. X counts the successes.',
@@ -54,7 +53,6 @@ export default {
       'At most x: add f(0) through f(x). At least x: add f(x) through f(n), or take 1 − P(X ≤ x − 1), whichever has fewer terms.',
       'At least one: 1 − P(X = 0) = 1 − q^n.',
       'Mean np, variance npq, standard deviation √(npq).',
-      'Binomial theorem: the x^k term of (ax + b)^n is C(n, k)(ax)^k b^(n−k), so its coefficient is C(n, k)a^k b^(n−k). Keep the sign: in (2x − 3)^5, b = −3.',
     ],
   },
   templates: [
@@ -179,47 +177,6 @@ export default {
             text: `n = ${n} trials, p = ${P}, q = ${Q}. On average you expect a fraction p of the trials to succeed; the variance carries the extra factor q, and σ is its square root.`,
           },
           distractors: ask.wrong.filter(w => Math.abs(w - ask.v) > 1e-9),
-        }
-      },
-    },
-    {
-      id: 'theorem',
-      generate() {
-        for (;;) {
-          const n = randInt(3, 7)
-          const a = choice([1, 1, 2, 3])
-          const b = choice([-3, -2, -1, 1, 2, 3])
-          const k = randInt(1, n - 1)
-          const coef = comb(n, k) * a ** k * b ** (n - k)
-          if (Math.abs(coef) > 5000) continue
-          const ax = a === 1 ? 'x' : `${a}x`
-          const xk = k === 1 ? 'x' : `x^{${k}}`
-          const B = b < 0 ? `−${-b}` : `${b}`
-          // C(n,k) a^k b^(n-k), leaving out factors that are 1
-          const factors = [`\\binom{${n}}{${k}}`]
-          const values = [comb(n, k)]
-          if (a !== 1) {
-            factors.push(`(${a})^{${k}}`)
-            values.push(a ** k)
-          }
-          if (b !== 1) {
-            factors.push(`(${b})^{${n - k}}`)
-            values.push(b ** (n - k))
-          }
-          const product = values.length > 1 ? ` = ${values.map(v => (v < 0 ? `(${v})` : `${v}`)).join(' \\cdot ')}` : ''
-          return {
-            ask: 'Binomial theorem.',
-            latex: `\\text{coefficient of } ${xk} \\text{ in } (${ax} ${b < 0 ? '-' : '+'} ${Math.abs(b)})^{${n}}`,
-            size: 'small',
-            answer: coef,
-            answerLatex: `${factors.join('')}${product} = ${coef}`,
-            placeholder: 'e.g. 720',
-            hint: {
-              latex: '(a + b)^n = \\sum_{k=0}^{n}\\binom{n}{k}a^k b^{n-k}',
-              text: `Use a = ${ax} and b = ${B}. The ${k === 1 ? 'x' : `x^${k}`} term is C(${n}, ${k})(${ax})^${k}(${B})^${n - k}: the power on x picks k, and b gets the other ${n - k}. Keep the sign of b.`,
-            },
-            distractors: [comb(n, k), comb(n, k) * a ** (n - k) * b ** k, a ** k * b ** (n - k), -coef],
-          }
         }
       },
     },

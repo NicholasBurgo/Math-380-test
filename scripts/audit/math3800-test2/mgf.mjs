@@ -7,7 +7,7 @@
 // E[e^{tX}] straight from its pmf or pdf (sums, numeric integrals) and
 // comparing it with the displayed MGF at a few values of t.
 import { parseExpr, evalExpr } from '../../../src/engine/expr.js'
-import { integrate, successCounts } from './_lib.mjs'
+import { integrate } from './_lib.mjs'
 
 const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b))
 
@@ -215,8 +215,6 @@ function geometricMgf(p, t) {
   return s
 }
 
-const binomialMgf = (n, p, t) => successCounts(n, p).reduce((s, w, k) => s + w * Math.exp(t * k), 0)
-
 // density proportional to x^(a-1) e^(-x/b) on x > 0. Both integrals numeric,
 // with x = u^m so the integrand is finite at 0.
 function gammaMgf(a, b, t) {
@@ -245,7 +243,6 @@ function optionMgf(text) {
     return parseFloat(m[1].replace('−', '-'))
   }
   if (text.startsWith('geometric with')) return t => geometricMgf(val('p'), t)
-  if (text.startsWith('binomial with')) return t => binomialMgf(val('n'), val('p'), t)
   if (text.startsWith('gamma with')) return t => gammaMgf(val('α'), val('β'), t)
   if (text.startsWith('exponential with')) return t => gammaMgf(1, val('β'), t)
   if (text.startsWith('chi-squared with')) return t => gammaMgf(val('γ') / 2, 2, t)
@@ -324,7 +321,6 @@ const onlyOne = hits => {
 
 export const derive = {
   'mgf/geometric': fromDerivatives,
-  'mgf/binomial': fromDerivatives,
   'mgf/continuous': fromDerivatives,
   'mgf/finite'(p) {
     const { mgf, ask } = readProblem(p.latex)

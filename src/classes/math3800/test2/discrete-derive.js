@@ -49,10 +49,11 @@ const box = (points, rest, opts) =>
 const ORDER = 'P(\\underbrace{S \\cdots S}_{x}\\,\\underbrace{F \\cdots F}_{n-x})'
 const BIN_LINES = [`${ORDER} &= p^xq^{n-x}`, '\\text{number of orders} &= \\binom{n}{x}']
 const BIN_SUM = '\\sum_{x=0}^{n} f(x) &= \\sum_{x=0}^{n} \\binom{n}{x}p^xq^{n-x}'
-// A = the first x - 1 trials hold exactly r - 1 successes, B = trial x is a success
-const NEG_LINES = ['f(x) &= P(A)\\,P(B)', 'P(A) &= \\binom{x-1}{r-1}p^{r-1}q^{x-r}', 'P(B) &= p']
-const NEG_ASK =
-  'X is the trial of the r-th success: A = the first x − 1 trials hold exactly r − 1 successes, and B = trial x is a success.'
+// The class notes' derivation: the last trial is the r-th success, so it is r - 1
+// successes somewhere in the first x - 1 trials, times p for the last one.
+const NEG_FIRST = 'P(r-1 \\text{ successes in } x-1 \\text{ trials})'
+const NEG_LINES = [`f(x) &= ${NEG_FIRST} \\cdot p`, '&= \\binom{x-1}{r-1}p^{r-1}q^{(x-1)-(r-1)} \\cdot p']
+const NEG_ASK = 'X is the number of trials needed for r successes, so the last trial is a success.'
 const HYP_LINES = ['\\#\\,\\text{samples} &= \\binom{N}{n}', '\\#\\,\\text{favorable} &= \\binom{r}{x}\\binom{N-r}{n-x}']
 const HYP_ASK = 'A sample of n is drawn without replacement from N items, r of them successes. Favorable samples hold exactly x successes.'
 const POI_LINES = [
@@ -88,7 +89,7 @@ export default {
       'Binomial: one particular order of x successes and n − x failures has probability p^x q^(n−x), because independent trials multiply.',
       'There are C(n, x) such orders (choose which x trials succeed), each with that same probability, so f(x) = C(n, x)p^x q^(n−x).',
       'Binomial sums to 1: every term is ≥ 0, and by the binomial theorem with a = p, b = q the sum is (p + q)^n = 1^n = 1.',
-      'Negative binomial: X = x means the r-th success lands on trial x. The first x − 1 trials hold exactly r − 1 successes, C(x − 1, r − 1)p^(r−1)q^(x−r), and then trial x succeeds: times p.',
+      'Negative binomial (the class notes): X counts the trials needed for r successes, so the last trial is a success. f(x) = P(r − 1 successes in x − 1 trials) · p = C(x − 1, r − 1)p^(r−1)q^((x−1)−(r−1)) · p = C(x − 1, r − 1)p^r q^(x−r).',
       'Hypergeometric: all C(N, n) samples are equally likely. The favorable ones pick x of the r successes and n − x of the N − r failures: C(r, x)C(N − r, n − x).',
       'Poisson sums to 1: pull e^(−k) out of the sum; Σ k^x/x! is the Maclaurin series of e^z at z = k, so the total is e^(−k)e^k = 1.',
     ],
@@ -178,21 +179,30 @@ export default {
       generate() {
         const part = choice([
           {
-            lines: [NEG_LINES[0], `P(A) &= ${BOX}`],
-            answer: 'C(x-1,r-1)p^(r-1)q^(x-r)',
-            choices: ['C(x,r)p^(r-1)q^(x-r)', 'C(x-1,r-1)p^rq^(x-r)', 'p^(r-1)q^(x-r)'],
-            hint: {
-              latex: '\\binom{x-1}{r-1}p^{r-1}q^{x-r}',
-              text: 'The first x − 1 trials are binomial: exactly r − 1 successes and (x − 1) − (r − 1) = x − r failures.',
-            },
-          },
-          {
-            lines: [...NEG_LINES.slice(0, 2), `P(B) &= ${BOX}`],
+            lines: [`f(x) &= ${NEG_FIRST} \\cdot ${BOX}`],
             answer: 'p',
             choices: ['q', 'p^r', '1'],
             hint: {
               latex: 'P(S \\text{ on trial } x) = p',
-              text: 'Trial x must be the r-th success itself. It is independent of the earlier trials, so it adds a factor p.',
+              text: 'The last trial is the r-th success itself. It is independent of the earlier trials, so it adds a factor p.',
+            },
+          },
+          {
+            lines: [NEG_LINES[0], `&= ${BOX} \\cdot p`],
+            answer: 'C(x-1,r-1)p^(r-1)q^(x-r)',
+            choices: ['C(x,r)p^(r-1)q^(x-r)', 'C(x-1,r-1)p^rq^(x-r)', 'p^(r-1)q^(x-r)'],
+            hint: {
+              latex: '\\binom{x-1}{r-1}p^{r-1}q^{(x-1)-(r-1)}',
+              text: 'The first x − 1 trials are binomial: C(x − 1, r − 1) ways to place the r − 1 successes, each way with probability p^(r−1) times q for every failure.',
+            },
+          },
+          {
+            lines: [NEG_LINES[0], `&= \\binom{x-1}{r-1}p^{r-1}q^{${BOX}} \\cdot p`],
+            answer: '(x-1)-(r-1)',
+            choices: ['x-1', 'r-1', 'x'],
+            hint: {
+              latex: '(x-1) - (r-1) = x - r',
+              text: 'The power of q counts the failures: x − 1 trials, r − 1 of them successes, so (x − 1) − (r − 1) = x − r failures.',
             },
           },
         ])
@@ -214,10 +224,10 @@ export default {
           NEG,
           {
             ask: `${NEG_ASK} Put the pieces together: what goes in the box?`,
-            latex: derivation([...NEG_LINES, `f(x) &= ${BOX}`]),
+            latex: derivation([...NEG_LINES, `&= ${BOX}`]),
             hint: {
               latex: 'f(x) = \\binom{x-1}{r-1}p^rq^{x-r}, \\quad x = r, r+1, \\ldots',
-              text: 'p^(r−1) times p is p^r. The count stays C(x − 1, r − 1): the last trial is not free to move.',
+              text: 'p^(r−1) times p is p^r, and (x − 1) − (r − 1) = x − r. The count stays C(x − 1, r − 1): the last trial is not free to move.',
             },
           },
           { answer: 'C(x-1,r-1)p^rq^(x-r)', choices: ['C(x,r)p^rq^(x-r)', 'C(x-1,r-1)p^(r-1)q^(x-r)', 'C(x-1,r)p^rq^(x-r)'] },
@@ -344,8 +354,8 @@ export default {
             right: 'Multiplication rule: x of the r successes and n − x of the N − r failures.',
           },
           {
-            step: 'f(x) = \\binom{x-1}{r-1}p^{r-1}q^{x-r} \\cdot p',
-            right: 'The first x − 1 trials hold exactly r − 1 successes, and trial x is the r-th success.',
+            step: `f(x) = ${NEG_FIRST} \\cdot p`,
+            right: 'The last trial is the r-th success: r − 1 successes in the first x − 1 trials, then a success.',
           },
           {
             step: '\\frac{e^{-k}k^x}{x!} \\ge 0',

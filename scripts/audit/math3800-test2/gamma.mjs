@@ -60,16 +60,6 @@ export const derive = {
     if (args.length !== 1) throw new Error(`unrecognized ${p.latex}`)
     return exact(gammaFn(args[0]), 1)
   },
-  'gamma/recursion'(p) {
-    const args = gammaArgs(p.latex)
-    if (args.length !== 2) throw new Error(`expected two Γ values in ${p.latex}`)
-    const given = p.latex.match(/\\approx (\d+(?:\.\d+)?)/)
-    if (!given) return exact(gammaFn(args[0]) / gammaFn(args[1]), 64) // the ratio, numerator first
-    const v = Number(given[1])
-    const [from, to] = args
-    if (Math.abs(gammaFn(from) - v) > 0.00006) throw new Error(`Γ(${from}) is ${gammaFn(from)}, not ${v}`)
-    return to > from ? v * exact(gammaFn(to) / gammaFn(from), 64) : v / exact(gammaFn(from) / gammaFn(to), 64)
-  },
   'gamma/integral': p => exact(weightedIntegral(power(p.latex), scale(p.latex))),
   'gamma/constant': p => 1 / exact(weightedIntegral(power(p.latex), scale(p.latex))),
   'gamma/mean-var'(p) {
@@ -118,7 +108,6 @@ export const derive = {
 
 export const SAMPLES = {
   'gamma/factorial': 500,
-  'gamma/recursion': 400,
   'gamma/integral': 400,
   'gamma/constant': 400,
   'gamma/mean-var': 400,

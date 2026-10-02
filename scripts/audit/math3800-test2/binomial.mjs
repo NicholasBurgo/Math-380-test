@@ -1,8 +1,7 @@
 // Independent checkers for the Test 2 'binomial' topic. See ../../verify.mjs.
 //
 // Probabilities come from the distribution of successes built one trial at a
-// time (successCounts, no binomial formula); theorem coefficients from
-// multiplying out (ax + b) n times.
+// time (successCounts, no binomial formula).
 import { successCounts } from './_lib.mjs'
 
 // n and p, read from the story
@@ -50,25 +49,6 @@ export const derive = {
     if (p.latex.startsWith('\\operatorname{Var}X')) return v
     if (p.latex.startsWith('\\sigma')) return Math.sqrt(v)
     throw new Error(`unrecognized ask ${p.latex}`)
-  },
-  'binomial/theorem'(p) {
-    const m = p.latex.match(/^\\text\{coefficient of \} x(?:\^\{(\d+)\})? \\text\{ in \} \((\d*)x ([+-]) (\d+)\)\^\{(\d+)\}$/)
-    if (!m) throw new Error(`unreadable ${p.latex}`)
-    const k = m[1] ? +m[1] : 1
-    const a = m[2] ? +m[2] : 1
-    const b = (m[3] === '-' ? -1 : 1) * +m[4]
-    const n = +m[5]
-    // multiply out (b + ax)^n; poly[j] is the coefficient of x^j
-    let poly = [1]
-    for (let i = 0; i < n; i++) {
-      const next = new Array(poly.length + 1).fill(0)
-      poly.forEach((c, j) => {
-        next[j] += c * b
-        next[j + 1] += c * a
-      })
-      poly = next
-    }
-    return poly[k]
   },
 }
 

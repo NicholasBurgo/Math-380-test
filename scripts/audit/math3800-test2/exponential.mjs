@@ -4,7 +4,8 @@
 // and converted to the unit W is measured in. Probabilities then come from
 // integrating the exponential density numerically, and "W > t" from the chance
 // that a Poisson count is 0, summed as a series. Moments are integrals too.
-import { integrate } from './_lib.mjs'
+// A typed cdf must match 1 − P(no events by x), and a typed pdf the slope of that.
+import { confirmFormula, integrate } from './_lib.mjs'
 
 const SECONDS = { second: 1, minute: 60, hour: 3600, day: 86400 }
 
@@ -48,6 +49,12 @@ function moments(beta) {
   return { mean, variance: second - mean * mean }
 }
 
+// central difference, accurate to ~1e-10 relative on these smooth curves
+const slope = (g, x) => {
+  const h = 1e-5 * x
+  return (g(x + h) - g(x - h)) / (2 * h)
+}
+
 const num = '(\\d+(?:\\.\\d+)?)'
 
 export const derive = {
@@ -72,6 +79,14 @@ export const derive = {
     if (!m || Number(m[1]) >= Number(m[2])) throw new Error(`unrecognized ${p.latex}`)
     return between(meanWait(p.text), Number(m[1]), Number(m[2]))
   },
+  'exponential/pdf'(p) {
+    const beta = meanWait(p.text)
+    const F = x => 1 - noEvents(beta, x)
+    const pts = [0.2, 0.75, 1.4, 3.1].map(r => ({ x: r * beta }))
+    if (p.latex.startsWith('F(x) = P(W \\le x)')) return confirmFormula(p, e => F(e.x), pts)
+    if (p.latex.startsWith('f(x)')) return confirmFormula(p, e => slope(F, e.x), pts)
+    throw new Error(`unrecognized ask ${p.latex}`)
+  },
   'exponential/mean-var'(p) {
     const beta = meanWait(p.text)
     const { mean, variance } = moments(beta)
@@ -93,5 +108,6 @@ export const SAMPLES = {
   'exponential/units': 600,
   'exponential/more-than': 600,
   'exponential/between': 600,
+  'exponential/pdf': 600,
   'exponential/mean-var': 500,
 }

@@ -1,6 +1,6 @@
 // Independent checkers for the Test 2 'uniform' topic. See ../../verify.mjs.
 //
-// "Equally likely on [a, b]" becomes a flat density whose height is fixed by
+// "Equally likely on [A, B]" becomes a flat density whose height is fixed by
 // area 1 (found by integrating, not by the 1/(b − a) formula); every answer is
 // then an integral of it.
 import { confirmFormula, integrate } from './_lib.mjs'
@@ -27,16 +27,16 @@ function integral(u, lo, hi, H = () => 1) {
 }
 
 const CHECK = [
-  { a: 2, b: 7, c: 0.4, x: 3.1 },
-  { a: -1, b: 1.5, c: 3, x: 0.2 },
-  { a: 0.3, b: 2.2, c: 1.1, x: 1.9 },
+  { A: 2, B: 7, c: 0.4, x: 3.1 },
+  { A: -1, B: 1.5, c: 3, x: 0.2 },
+  { A: 0.3, B: 2.2, c: 1.1, x: 1.9 },
 ]
 
 export const derive = {
   // Read off the screen: the box equals the integral written just before it,
   // integrated numerically; for "c = box", the line above (area = 1) fixes c.
   'uniform/derive'(p) {
-    const V = ['a', 'b', 'c', 'x', 't']
+    const V = ['A', 'B', 'c', 'x', 't']
     const rows = rowsOf(p.latex)
     const boxRow = rows.find(r => r.includes('\\boxed'))
     const parts = boxRow.replace('&', '').split(' = ').map(s => s.trim())

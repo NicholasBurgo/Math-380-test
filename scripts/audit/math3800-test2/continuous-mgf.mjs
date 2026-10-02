@@ -1,24 +1,25 @@
 // Independent checkers for the Test 2 'continuous-mgf' topic. See ../../verify.mjs.
 //
 // The derivations are read off the screen: every displayed line is evaluated
-// numerically (integrals included, Γ(α) integrated too) and must equal the
-// first line, the definition ∫ e^(tx) f(x) dx. The box then gets its value
-// from its own line. No closed-form MGF is used anywhere. Where an MGF exists
-// is decided by watching the integrand die off (or not).
+// numerically (integrals and series included) and must equal the first line,
+// the definition ∫ e^(tx) f(x) dx or Σ e^(tx) f(x). The box then gets its value
+// from its own line. A discrete pdf (a table, a formula on a few values, an
+// infinite one) is read back and Σ e^(tx) f(x) added up term by term, a series
+// until its terms stop mattering. No closed-form MGF is used anywhere. Where an
+// MGF exists is decided by watching the integrand die off (or not).
 import { confirmFormula, integrate } from './_lib.mjs'
-import { area, densityOf, exprValue, halfLine, letterOf, rowsOf, texFormula, validPdf } from './continuous-pdf.mjs'
+import { area, densityOf, exprValue, letterOf, rowsOf, texFormula, validPdf } from './continuous-pdf.mjs'
 import { parseExpr, evalExpr } from '../../../src/engine/expr.js'
 
-const gammaFn = al => halfLine(z => z ** (al - 1) * Math.exp(-z))
 const flatHeight = (a, b) => 1 / integrate(() => 1, a, b, 2)
 
-const VARS = ['t', 'x', 'z', 'beta', 'lambda', 'alpha', 'a', 'b']
+const VARS = ['t', 'x', 'beta', 'lambda', 'a', 'b']
 // every integral converges here (t below 1, 1/β and λ), and t ≠ 0 for the uniform
 const ENVS = [
-  { t: 0.15, x: 0.9, beta: 2.5, lambda: 2, alpha: 2.5, a: 0.5, b: 2.5 },
-  { t: -0.4, x: 1.6, beta: 0.8, lambda: 0.7, alpha: 2, a: 1, b: 3 },
-  { t: 0.1, x: 3.2, beta: 3, lambda: 1.2, alpha: 3, a: -1, b: 0.5 },
-].map(e => ({ ...e, G: gammaFn(e.alpha) }))
+  { t: 0.15, x: 0.9, beta: 2.5, lambda: 2, a: 0.5, b: 2.5 },
+  { t: -0.4, x: 1.6, beta: 0.8, lambda: 0.7, a: 1, b: 3 },
+  { t: 0.1, x: 3.2, beta: 3, lambda: 1.2, a: -1, b: 0.5 },
+]
 
 const BOX = '\\boxed{\\;?\\;}'
 // t values for a specific density: below every limit used (1/10 is the smallest), and t ≠ 0
@@ -32,30 +33,12 @@ function rhsOf(row) {
   return s.replace(/,\s*\\quad t .*$/, '').trim()
 }
 
-// A substitution row "\text{let } z = A: \; x = B, \; dx = C\,dz": the pieces.
-function substitution(row) {
-  const m = row.match(/z = (.+?): \\; x = (.+?), \\; dx = (.+?)\\,dz/)
-  if (!m) throw new Error(`unrecognized substitution ${row}`)
-  return { z: texFormula(m[1], VARS), x: texFormula(m[2], VARS), dx: m[3] }
-}
-
-// Every displayed line equals the first; a substitution line really inverts z.
+// Every displayed line equals the first.
 function checkLines(rows) {
   for (const env of ENVS) {
     const m0 = rows[0].includes('\\boxed') ? null : exprValue(rhsOf(rows[0]), env, VARS)
     rows.slice(1).forEach((row, k) => {
-      if (row.includes('\\boxed')) return
-      if (row.includes('\\text{let }')) {
-        const sub = substitution(row)
-        const zx = sub.z(env)
-        const back = sub.x({ ...env, z: zx })
-        const h = 1e-5
-        const slope = (sub.x({ ...env, z: zx + h }) - sub.x({ ...env, z: zx - h })) / (2 * h)
-        const dx = texFormula(sub.dx, VARS)(env)
-        if (!close(back, env.x) || !close(slope, dx)) throw new Error(`the substitution on line ${k + 2} is wrong`)
-        return
-      }
-      if (m0 === null) return
+      if (row.includes('\\boxed') || m0 === null) return
       const v = exprValue(rhsOf(row), env, VARS)
       if (!close(v, m0)) throw new Error(`line ${k + 2} gives ${v}, but the definition gives ${m0}`)
     })
@@ -74,7 +57,7 @@ function boxValue(row, env, m, f0, first) {
     const limits = r => r.match(/\\int_\S+\^\S+/)[0]
     if (limits(rhs) !== limits(first)) throw new Error('the combined integral has different limits')
     const scope = { ...env }
-    const here = texFormula(integrand(rhs).replace(BOX, '0'), [...VARS, 'G'])(scope)
+    const here = texFormula(integrand(rhs).replace(BOX, '0'), VARS)(scope)
     const pre = rhs.slice(0, rhs.indexOf('\\int')).trim()
     const factor = pre ? exprValue(pre, env, VARS) : 1
     return Math.log(f0(env) / (factor * here))
@@ -111,7 +94,7 @@ function derivationBox(p, special) {
   const boxRow = rows.find(r => r.includes('\\boxed'))
   const first = rhsOf(rows[0])
   const integrand = first.match(/\\int_\S+\^\S+ (.+?)\\,dx/)[1]
-  const f0 = texFormula(integrand.replaceAll('\\Gamma(\\alpha)', ' G '), [...VARS, 'G'])
+  const f0 = texFormula(integrand, VARS)
   return confirmFormula(p, remembered(key, env => boxValue(boxRow, env, exprValue(first, env, VARS), f0, first)), ENVS)
 }
 
@@ -121,6 +104,117 @@ function askedDensity(ask) {
   if (!m) throw new Error(`no density in ${ask}`)
   const ast = parseExpr(m[1], ['x'])
   return x => evalExpr(ast, { x })
+}
+
+// ---------- discrete pdfs: Σ e^(tx) f(x), term by term ----------
+
+// t values for the discrete checks: any t for a finite sum, and inside
+// qe^t < 1 for every series ratio q up to 0.8 (a series that diverges throws)
+const DISCRETE_TS = [{ t: -1.3 }, { t: -0.35 }, { t: 0.12 }]
+
+// Σ from x = start on of term(x), until the terms stop mattering.
+function series(term, start) {
+  let s = 0
+  let quiet = 0
+  for (let x = start; x < start + 100000; x++) {
+    const v = term(x)
+    if (!Number.isFinite(v)) throw new Error(`term ${x} of the series is ${v}`)
+    s += v
+    quiet = Math.abs(v) <= 1e-17 * Math.abs(s) ? quiet + 1 : 0
+    if (quiet === 5) return s
+  }
+  throw new Error('the series never settles: it may diverge')
+}
+
+// The pdf a discrete problem shows: a table, or "f(x) = ..., \quad x = 0, 1, 2"
+// (ending in \ldots: on and on). { values, f } when finite, { start, f } when not.
+function discretePdf(latex) {
+  const table = latex.match(/\\begin\{array\}\{c\|c+\} x & (.+?) \\\\ \\hline f\(x\) & (.+?) \\end\{array\}/)
+  if (table) {
+    const xs = table[1].split(' & ').map(Number)
+    const fs = table[2].split(' & ').map(Number)
+    if (xs.length !== fs.length) throw new Error('the table rows have different lengths')
+    return { values: xs, f: x => fs[xs.indexOf(x)] }
+  }
+  const m = latex.match(/f\(x\) = (.+?), \\quad x = (.+?) \\\\ /)
+  if (!m) throw new Error(`no pdf in ${latex}`)
+  const fx = texFormula(m[1], ['x'])
+  const f = x => fx({ x })
+  const list = m[2].split(', ')
+  if (list[list.length - 1] !== '\\ldots') return { values: list.map(Number), f }
+  const xs = list.slice(0, -1).map(Number)
+  if (xs.length < 2 || !xs.every((x, i) => x === xs[0] + i)) throw new Error(`the values ${m[2]} do not count up by 1`)
+  return { start: xs[0], f }
+}
+
+const sumOver = (d, g) => (d.values ? d.values.reduce((s, x) => s + g(x), 0) : series(g, d.start))
+
+// A pdf really: whole-number values, each once, f never negative, total 1.
+function validPmf(d) {
+  const xs = d.values ?? Array.from({ length: 300 }, (_, i) => d.start + i)
+  if (new Set(xs).size !== xs.length || !xs.every(Number.isInteger)) throw new Error(`bad values ${xs}`)
+  if (!xs.every(x => d.f(x) >= 0)) throw new Error('f is negative somewhere')
+  const total = sumOver(d, d.f)
+  if (Math.abs(total - 1) > 1e-9) throw new Error(`the probabilities add to ${total}`)
+  return d
+}
+
+// E[e^(tX)] straight from the pdf
+const pmfMgf = d => env => sumOver(d, x => Math.exp(env.t * x) * d.f(x))
+
+// A row's value: a plain formula, or [prefix] \sum_{x=s}^{\infty} summand.
+function seriesRow(tex, env) {
+  const m = tex.match(/^(.*?)\\sum_\{x=(-?\d+)\}\^\{\\infty\} (.+)$/)
+  if (!m) return texFormula(tex, ['t'])(env)
+  const pre = m[1].trim() ? texFormula(m[1], ['t'])(env) : 1
+  const g = texFormula(m[3], ['t', 'x'])
+  return pre * series(x => g({ t: env.t, x }), +m[2])
+}
+
+// A series derivation box. The first line must be Σ e^(tx) f(x) for a real
+// pdf f, every other full line must equal it, and the box comes from its line:
+// a boxed ratio matches the definition term by term, a boxed factor is the
+// definition over the rest of its line.
+const seriesChecked = new Set()
+function seriesBox(p) {
+  const rows = rowsOf(p.latex)
+  const def = rhsOf(rows[0]).match(/^\\sum_\{x=(-?\d+)\}\^\{\\infty\} e\^\{tx\}(.+)$/)
+  if (!def) throw new Error(`the first line is not a sum of e^(tx) f(x): ${rows[0]}`)
+  const fx = texFormula(def[2], ['x'])
+  const d = validPmf({ start: +def[1], f: x => fx({ x }) })
+  const m = pmfMgf(d)
+  if (!seriesChecked.has(p.latex)) {
+    for (const row of rows.slice(1)) {
+      if (row.includes(BOX)) continue
+      for (const env of DISCRETE_TS) {
+        if (!close(seriesRow(rhsOf(row), env), m(env))) throw new Error(`the line ${row} does not equal the definition`)
+      }
+    }
+    seriesChecked.add(p.latex)
+  }
+  const line = rhsOf(rows.find(r => r.includes(BOX)))
+  const ratio = line.match(/^(.*?)\\sum_\{x=(-?\d+)\}\^\{\\infty\} \\left\((.+?)\\right\)\^(\{[^}]*\}|\S)$/)
+  if (ratio) {
+    if (ratio[3] !== BOX || +ratio[2] !== d.start) throw new Error(`unexpected ratio line ${line}`)
+    const power = texFormula(ratio[4], ['x'])
+    return confirmFormula(
+      p,
+      remembered(p.latex, env => {
+        const pre = ratio[1].trim() ? texFormula(ratio[1], ['t'])(env) : 1
+        // e^(tx) f(x) = pre · r^power(x) for every x: solve for r where power ≠ 0
+        const rs = []
+        for (let x = d.start; x < d.start + 6; x++) {
+          const k = power({ x })
+          if (k !== 0) rs.push(((Math.exp(env.t * x) * d.f(x)) / pre) ** (1 / k))
+        }
+        if (!rs.every(r => close(r, rs[0]))) throw new Error('no single ratio matches every term')
+        if (!close(pre * series(x => rs[0] ** power({ x }), d.start), m(env))) throw new Error('the series line does not equal the definition')
+        return rs[0]
+      }),
+      DISCRETE_TS,
+    )
+  }
+  return confirmFormula(p, remembered(p.latex, env => m(env) / seriesRow(line.replace(BOX, '1'), env)), DISCRETE_TS)
 }
 
 // ---------- where does the MGF exist? ----------
@@ -203,15 +297,19 @@ function stepHolds(step) {
 function reasonFor(step) {
   if (step.startsWith('e^{tx}e^{-x}')) return /add the exponents/
   if (step.startsWith('\\int_0^{\\infty} e^{-(1-t)x}')) return /needs t < 1/
-  if (step.includes('z^{\\alpha-1}e^{-z}')) return /gamma function/
   if (step.startsWith('m_X(t) =')) return /Definition of the MGF/
   if (step.includes('1/\\beta - t')) return /Multiply the top and bottom by β/
   if (step.startsWith('\\int_a^b e^{tx}')) return /e\^\(tx\)\/t/
-  if (step.startsWith('x = ')) return /Substitute z/
   throw new Error(`unrecognized step ${step}`)
 }
 
+// A displayed discrete pdf, its MGF summed term by term.
+const fromPmf = p => confirmFormula(p, remembered(p.latex, pmfMgf(validPmf(discretePdf(p.latex)))), DISCRETE_TS)
+
 export const derive = {
+  'continuous-mgf/discrete-table': fromPmf,
+  'continuous-mgf/discrete-formula': fromPmf,
+  'continuous-mgf/discrete-series': p => (p.latex.includes(BOX) ? seriesBox(p) : fromPmf(p)),
   'continuous-mgf/combine'(p) {
     // the definition with its integrand boxed: e^(tx) times the f(x) the ask states
     if (p.latex.includes(`\\int_0^{\\infty} ${BOX}`)) {
@@ -231,20 +329,6 @@ export const derive = {
     if (p.latex.includes(`= \\int_a^b ${BOX}`)) return derivationBox(p, e => Math.exp(e.t * e.x) * flatHeight(e.a, e.b))
     return derivationBox(p)
   },
-  'continuous-mgf/gamma'(p) {
-    // dx in the substitution: differentiate the displayed z(x) numerically and invert
-    if (p.latex.includes(`dx = ${BOX}`)) {
-      const m = p.latex.match(/z = (.+?): \\; x = (.+?), \\; dx = /)
-      const z = texFormula(m[1], VARS)
-      const x = texFormula(m[2], VARS)
-      return derivationBox(p, e => {
-        if (!close(x({ ...e, z: z(e) }), e.x)) throw new Error('x = ... does not invert z = ...')
-        const h = 1e-5
-        return (2 * h) / (z({ ...e, x: e.x + h }) - z({ ...e, x: e.x - h }))
-      })
-    }
-    return derivationBox(p)
-  },
   'continuous-mgf/numbers'(p) {
     const d = validPdf(densityOf(p.latex))
     return confirmFormula(p, remembered(p.latex, e => area(x => Math.exp(e.t * x) * d.g(x), d.lo, d.hi)), NUMBER_TS)
@@ -261,7 +345,6 @@ export const SAMPLES = {
   'continuous-mgf/domain': 400,
   'continuous-mgf/exponential': 300,
   'continuous-mgf/uniform': 300,
-  'continuous-mgf/gamma': 300,
   'continuous-mgf/numbers': 400,
   'continuous-mgf/why': 400,
 }

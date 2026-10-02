@@ -143,6 +143,23 @@ for (const cls of classes) {
     }
   }
 
+  // study guides: every line names real topics, and any `only` narrowing names
+  // real templates of a topic on that line
+  for (const unit of cls.units.filter(u => u.guide)) {
+    unit.guide.forEach((g, i) => {
+      const where = `${cls.id}/${unit.id} guide line ${i + 1} (${g.short})`
+      if (!g.text || !g.short || !g.topics?.length) failures.push(`${where}: needs text, short and topics`)
+      for (const id of g.topics ?? []) {
+        if (!unit.topics.some(t => t.id === id)) failures.push(`${where}: no topic ${id} in the unit`)
+      }
+      for (const [id, keep] of Object.entries(g.only ?? {})) {
+        const topic = unit.topics.find(t => t.id === id)
+        if (!g.topics.includes(id) || !topic) failures.push(`${where}: only names ${id}, which is not on the line`)
+        else for (const tid of keep) if (!topic.templates.some(t => t.id === tid)) failures.push(`${where}: ${id} has no template ${tid}`)
+      }
+    })
+  }
+
   // learn blocks: every topic teaches, and its formulas parse
   for (const topic of cls.units.flatMap(u => u.topics).filter(t => wanted(cls, t))) {
     if (!topic.learn?.formulas?.length || !topic.learn?.how?.length) {

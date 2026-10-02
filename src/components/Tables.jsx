@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import MathText from './MathText.jsx'
 
-const TAB_NAMES = { binomial: 'Binomial (n = 20)', normal: 'Normal (z)', chi2: 'χ²' }
+const TAB_NAMES = { binomial19: 'Binomial (n = 19)', binomial: 'Binomial (n = 20)', normal: 'Normal (z)', chi2: 'χ²' }
 
 // While an overlay is open it owns the keyboard: Escape closes it, and drill
 // shortcuts (1-4, Enter) don't reach the problem underneath.

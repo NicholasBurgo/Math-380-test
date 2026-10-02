@@ -4,7 +4,9 @@
 // (the notes' summary): trials counted "until" the r-th success, a sample
 // "without replacement" or from a finite group, an average rate "per" unit,
 // draws "put back", a fixed number of trials. Parameters are read back from
-// the numbers in the text.
+// the numbers in the text, and the possible values of X by brute force: every
+// count whose probability is positive.
+import { choose, successCounts } from './_lib.mjs'
 
 const BIN = 'binomial'
 const NEG = 'negative binomial'
@@ -78,6 +80,7 @@ function paramsOf(text, label) {
     if ((m = text.match(/committee of (\d+) is chosen at random from a club of (\d+) women and (\d+) men\. X is the number of (women|men) /)))
       return { N: +m[2] + +m[3], r: m[4] === 'women' ? +m[2] : +m[3], n: +m[1] }
     if ((m = text.match(/fills (\d+) bottles, and (\d+) of them are underfilled\. A sample of (\d+) bottles/))) return { N: +m[1], r: +m[2], n: +m[3] }
+    if ((m = text.match(/box of (\d+) batteries holds (\d+) dead ones\. Then (\d+) of them are taken out/))) return { N: +m[1], r: +m[2], n: +m[3] }
     throw new Error(`no population in: ${text}`)
   }
   return { k: poissonK(text) }
@@ -103,6 +106,54 @@ function onlyOne(options, test) {
   return hits[0]
 }
 
+// ---------- possible values ----------
+
+// [lowest, highest] value with positive probability; highest is Infinity when
+// the probability is still positive far out (checked to T trials or events).
+const T = 120
+function supportOf(label, q) {
+  let probs
+  if (label === BIN) probs = successCounts(q.n, q.p)
+  else if (label === HYP) probs = Array.from({ length: q.n + 1 }, (_, x) => choose(q.r, x) * choose(q.N - q.r, q.n - x))
+  else if (label === NEG) {
+    // successes so far (0..r-1), trial by trial; at[t] = chance the r-th lands on trial t
+    let state = new Array(q.r).fill(0)
+    state[0] = 1
+    probs = [0]
+    for (let t = 1; t <= T; t++) {
+      const next = new Array(q.r).fill(0)
+      let done = 0
+      state.forEach((w, k) => {
+        next[k] += w * (1 - q.p)
+        if (k + 1 === q.r) done += w * q.p
+        else next[k + 1] += w * q.p
+      })
+      probs.push(done)
+      state = next
+    }
+  } else {
+    // Poisson terms e^(-k) k^x / x!, built up one at a time
+    probs = [Math.exp(-q.k)]
+    for (let x = 1; x <= T; x++) probs.push((probs[x - 1] * q.k) / x)
+  }
+  const xs = probs.map((w, x) => (w > 0 ? x : -1)).filter(x => x >= 0)
+  const open = (label === NEG || label === POI) && probs[T] > 0
+  return [xs[0], open ? Infinity : xs[xs.length - 1]]
+}
+
+// {0, 1, …, 12}, {3, 4, 5, 6} or {2, 3, 4, …} back to [lowest, highest]
+function setOf(latex) {
+  const m = latex.match(/^\\\{(.*)\\\}$/)
+  if (!m) throw new Error(`not a set: ${latex}`)
+  const parts = m[1].split(', ')
+  const nums = parts.filter(x => x !== '\\ldots').map(Number)
+  if (nums.some(Number.isNaN)) throw new Error(`unreadable set ${latex}`)
+  if (parts[parts.length - 1] === '\\ldots') return [nums[0], Infinity]
+  // listed in full: they must run one at a time
+  if (!parts.includes('\\ldots') && nums.some((x, i) => i > 0 && x !== nums[i - 1] + 1)) throw new Error(`gaps in ${latex}`)
+  return [nums[0], nums[nums.length - 1]]
+}
+
 export const derive = {
   'which-discrete/label'(p) {
     const label = classify(p.text)
@@ -119,6 +170,14 @@ export const derive = {
     return onlyOne(p.options, o => {
       const got = parseOption(o)
       return got.label === label && sameParams(want, got.params)
+    })
+  },
+  'which-discrete/values'(p) {
+    const label = classify(p.text)
+    const [lo, hi] = supportOf(label, paramsOf(p.text, label))
+    return onlyOne(p.options, o => {
+      const [a, b] = setOf(o.latex)
+      return a === lo && b === hi
     })
   },
 }

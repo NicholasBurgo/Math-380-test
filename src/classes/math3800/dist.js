@@ -138,7 +138,7 @@ export const chi2Table = (left, df) => sig(chi2Quantile(left, df), 3)
 export const BINOMIAL_P = [0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.9]
 export const CHI2_LEFT = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975, 0.99, 0.995]
 
-// The cumulative binomial table, n = 20: P(X <= x) to 4 decimals.
+// The cumulative binomial tables, n = 19 and n = 20: P(X <= x) to 4 decimals.
 export const binomTable = (p, x, n = 20) => (x < 0 ? 0 : round(binomCdf(n, p, x), 4))
 
 const f4 = v => v.toFixed(4)
@@ -147,6 +147,18 @@ const f3 = v => {
   const mag = Math.floor(Math.log10(Math.abs(s)))
   return s.toFixed(Math.max(0, 2 - mag))
 }
+
+// One cumulative binomial table: rows x = 0..n, a column per p.
+const binomialTable = n => ({
+  title: `Cumulative binomial, n = ${n}`,
+  note: 'Row x, column p: the entry is P(X ≤ x).',
+  corner: 'x \\ p',
+  cols: BINOMIAL_P.map(String),
+  rows: Array.from({ length: n + 1 }, (_, x) => ({
+    label: String(x),
+    values: BINOMIAL_P.map(p => f4(binomTable(p, x, n))),
+  })),
+})
 
 export function printedTables() {
   const zRows = []
@@ -164,16 +176,8 @@ export function printedTables() {
     }
   }
   return {
-    binomial: {
-      title: 'Cumulative binomial, n = 20',
-      note: 'Row x, column p: the entry is P(X ≤ x).',
-      corner: 'x \\ p',
-      cols: BINOMIAL_P.map(String),
-      rows: Array.from({ length: 21 }, (_, x) => ({
-        label: String(x),
-        values: BINOMIAL_P.map(p => f4(binomTable(p, x))),
-      })),
-    },
+    binomial19: binomialTable(19),
+    binomial: binomialTable(20),
     normal: {
       title: 'Standard normal, P(Z < z)',
       note: 'Row: z to one decimal. Column: the second decimal. Row −1.2, column 0.05 is z = −1.25.',

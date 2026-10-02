@@ -4,7 +4,7 @@
 // event. z = (x - μ)/σ is rounded to 2 decimals and looked up in a z table
 // rebuilt from _lib's phi (the density integrated numerically) to 4 decimals.
 // Backwards problems search that table for the closest entry (the midpoint of a
-// tie) and convert with x = μ + zσ.
+// tie) and convert with x = μ + zσ. A percentile is the area to the left.
 import { phi } from './_lib.mjs'
 
 const TABLE = new Map() // hundredths of z -> entry
@@ -43,6 +43,14 @@ function params(text) {
   const s = text.match(new RegExp(`σ = ${NUM}`))
   if (!mu || (!v && !s)) throw new Error(`no μ or σ in "${text}"`)
   return { mu: Number(mu[1]), sigma: v ? Math.sqrt(Number(v[1])) : Number(s[1]) }
+}
+// English suffixes: 1st, 2nd, 3rd, 4th, 11th to 13th; after a decimal point
+// the digits are read one by one, so 99.53rd.
+function suffixOk(n, suffix) {
+  const s = String(n)
+  const last = s.includes('.') ? Number(s.slice(-1)) : Number(s) % 100
+  const want = last >= 11 && last <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][last % 10] ?? 'th'
+  if (suffix !== want) throw new Error(`"${n}${suffix}" should be "${n}${want}"`)
 }
 const read = (latex, pattern) => {
   const m = latex.match(new RegExp(pattern))
@@ -87,13 +95,39 @@ export const derive = {
     else throw new Error(`unrecognized "${p.text}"`)
     return mu + zFor(left) * sigma
   },
+  'normal-apps/percentile'(p) {
+    const { mu, sigma } = params(p.text)
+    let m
+    if ((m = p.text.match(/What percentile is an? [^?]* of (\d+(?:\.\d+)?)[^?\d]*\?/))) {
+      // a score's percentile: the table entry at its z
+      const x = Number(m[1])
+      const [shown] = read(p.latex, `^x = ${NUM}, \\\\quad \\\\text\\{percentile\\} = `)
+      if (shown !== x) throw new Error(`the text asks about ${x}, the math shows ${shown}`)
+      const e = lookup((x - mu) / sigma)
+      // the solution names it as a percentile too
+      const said = p.answerLatex.match(/\\text\{the (\d+(?:\.\d+)?)(st|nd|rd|th) percentile\}/)
+      if (!said || Math.abs(Number(said[1]) - e * 100) > 1e-9) throw new Error(`the solution does not call ${e} the ${e * 100}th percentile`)
+      suffixOk(said[1], said[2])
+      return e
+    }
+    if ((m = p.text.match(/is the (\d+(?:\.\d+)?)(st|nd|rd|th) percentile\?/))) {
+      // a percentile's score: left area pct/100
+      suffixOk(m[1], m[2])
+      if (!p.latex.includes(`the ${m[1]}${m[2]} percentile`)) throw new Error(`the math does not show the ${m[1]}${m[2]} percentile`)
+      return mu + zFor(Number(m[1]) / 100) * sigma
+    }
+    throw new Error(`unrecognized "${p.text}"`)
+  },
   'normal-apps/middle'(p) {
     const { mu, sigma } = params(p.text)
     const m = p.latex.match(/^P\(x_1 < X < x_2\) = (\d+(?:\.\d+)?)$/)
-    const which = p.text.match(/Find x(₁|₂)\./)
-    if (!m || !which) throw new Error(`unrecognized ${p.text} :: ${p.latex}`)
+    const pct = p.text.match(/find the middle (\d+)% of the population\?/)
+    const which = p.text.match(/find the (lower|upper) one, x(₁|₂)\./)
+    if (!m || !pct || !which) throw new Error(`unrecognized ${p.text} :: ${p.latex}`)
     const A = Number(m[1])
-    return mu + zFor(which[1] === '₂' ? (1 + A) / 2 : (1 - A) / 2) * sigma
+    if (Math.abs(Number(pct[1]) / 100 - A) > 1e-9) throw new Error(`the text says ${pct[1]}%, the math ${A}`)
+    if ((which[1] === 'upper') !== (which[2] === '₂')) throw new Error(`the ${which[1]} one is not x${which[2]}`)
+    return mu + zFor(which[1] === 'upper' ? (1 + A) / 2 : (1 - A) / 2) * sigma
   },
 }
 
@@ -103,5 +137,6 @@ export const SAMPLES = {
   'normal-apps/between': 1000,
   'normal-apps/outside': 1000,
   'normal-apps/x-from-area': 500,
+  'normal-apps/percentile': 1000,
   'normal-apps/middle': 500,
 }

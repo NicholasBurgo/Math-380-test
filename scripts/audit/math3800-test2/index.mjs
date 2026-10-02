@@ -17,11 +17,12 @@ import * as continuousExpectation from './continuous-expectation.mjs'
 import * as continuousMgf from './continuous-mgf.mjs'
 import * as gamma from './gamma.mjs'
 import * as exponential from './exponential.mjs'
+import * as integration from './integration.mjs'
 import * as chiSquared from './chi-squared.mjs'
 import * as normalTable from './normal-table.mjs'
 import * as normalApps from './normal-apps.mjs'
 
-const MODULES = [geometric, geometricDerive, mgf, binomial, binomialTable, negativeBinomial, hypergeometric, poisson, discreteDerive, whichDiscrete, continuousPdf, continuousCdf, uniform, continuousExpectation, continuousMgf, gamma, exponential, chiSquared, normalTable, normalApps]
+const MODULES = [geometric, geometricDerive, mgf, binomial, binomialTable, negativeBinomial, hypergeometric, poisson, discreteDerive, whichDiscrete, continuousPdf, continuousCdf, uniform, continuousExpectation, continuousMgf, gamma, exponential, integration, chiSquared, normalTable, normalApps]
 
 export const derive = Object.assign({}, ...MODULES.map(m => m.derive))
 export const SAMPLES = Object.assign({}, ...MODULES.map(m => m.SAMPLES ?? {}))

@@ -102,6 +102,12 @@ const binom = memo(e => total(e.n, s => hits(s) === e.x, e.p, 1 - e.p))
 const allSeqFree = memo(e => total(e.n, () => true, e.p, e.q))
 // first x - 1 trials hold r - 1 successes
 const negFirst = memo(e => total(e.x - 1, s => hits(s) === e.r - 1, e.p, 1 - e.p))
+// failures among the first x - 1 trials once r - 1 of them succeed, counted off
+// one such sequence
+const failuresBefore = memo(e => {
+  for (const s of sequences(e.x - 1)) if (hits(s) === e.r - 1) return s.length - hits(s)
+  throw new Error(`no sequence of ${e.x - 1} trials has ${e.r - 1} successes`)
+})
 // the r-th success is on trial x
 const negAll = memo(e => total(e.x, s => rthAt(s, e.r) === e.x, e.p, 1 - e.p))
 const hypCounts = memo(e => sampleCounts(e.N, e.r, e.n))
@@ -118,7 +124,7 @@ function reasonFor(step) {
   if (step.includes('= e^k')) return /Maclaurin/
   if (step.includes('\\frac{\\binom{r}{x}')) return /equally likely/
   if (step.includes('\\text{favorable}')) return /Multiplication rule/
-  if (step.includes('\\cdot p')) return /trial x is the r-th success/
+  if (step.includes('\\cdot p')) return /last trial is the r-th success/
   if (step.includes('\\ge 0')) return /all positive/
   throw new Error(`unrecognized step ${step}`)
 }
@@ -169,9 +175,10 @@ export const derive = {
     throw new Error(`unrecognized part ${p.ask}`)
   },
   'discrete-derive/negbin-split'(p) {
-    // A: the first x - 1 trials hold r - 1 successes; B: trial x is a success
-    if (p.latex.includes('P(A) &= \\boxed')) return confirmFormula(p, negFirst, NEG)
-    if (p.latex.includes('P(B) &= \\boxed')) return confirmFormula(p, e => negAll(e) / negFirst(e), NEG)
+    // f(x) = P(r - 1 successes in the first x - 1 trials) * P(the last trial succeeds)
+    if (p.latex.includes('\\cdot \\boxed')) return confirmFormula(p, e => negAll(e) / negFirst(e), NEG)
+    if (p.latex.includes('&= \\boxed')) return confirmFormula(p, negFirst, NEG)
+    if (p.latex.includes('q^{\\boxed')) return confirmFormula(p, failuresBefore, NEG)
     throw new Error(`no box found in ${p.latex}`)
   },
   'discrete-derive/negbin-result': p => confirmFormula(p, negAll, NEG),

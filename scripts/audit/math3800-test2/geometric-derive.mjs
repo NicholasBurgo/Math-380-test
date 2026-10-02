@@ -90,11 +90,14 @@ export const derive = {
     if (i < 0 || p.options.filter(o => want.test(o)).length !== 1) throw new Error('no unique reason matches')
     return 'abcd'[i]
   },
-  'geometric-derive/numbers'(p) {
+  'geometric-derive/mgf-numbers'(p) {
+    if (!p.latex.startsWith('m_X')) throw new Error(`not an MGF: ${p.latex}`)
     const pr = decimals(p.ask)[0]
-    if (p.latex.startsWith('m_X')) {
-      return confirmFormula(p, e => mgfSum(pr, e.t), [{ t: -0.7 }, { t: 0.02 }, { t: -2 }])
-    }
+    return confirmFormula(p, e => mgfSum(pr, e.t), [{ t: -0.7 }, { t: 0.02 }, { t: -2 }])
+  },
+  'geometric-derive/cdf-numbers'(p) {
+    if (!p.latex.startsWith('F(x)')) throw new Error(`not a cdf: ${p.latex}`)
+    const pr = decimals(p.ask)[0]
     return confirmFormula(p, e => series(k => f(pr, k), 1, e.x), [{ x: 1 }, { x: 3 }, { x: 8 }])
   },
 }
@@ -109,5 +112,6 @@ export const SAMPLES = {
   'geometric-derive/mgf-series': 200,
   'geometric-derive/mgf-result': 200,
   'geometric-derive/mgf-domain': 300,
-  'geometric-derive/numbers': 400,
+  'geometric-derive/mgf-numbers': 300,
+  'geometric-derive/cdf-numbers': 300,
 }

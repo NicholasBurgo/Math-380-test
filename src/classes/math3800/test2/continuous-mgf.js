@@ -1,11 +1,58 @@
 import { choice } from '../../../engine/rand.js'
-import { BOX, derivation, formula, lettered } from './util.js'
+import { gcd, pdfTable, randProbs } from '../util.js'
+import { BOX, dec, derivation, formula, lettered } from './util.js'
 import { stack } from './continuous-pdf.js'
 
-// §4.2–4.3: m_X(t) = E[e^(tX)] = ∫ e^(tx) f(x) dx, one step at a time, like
-// the geometric derivations: the lines so far, then a box to fill. The notes
-// do f(x) = e^(−x) on x > 0 and then the gamma MGF; the exponential (β or λ)
-// and the uniform are the same moves.
+// Finding an MGF from its definition, m_X(t) = E[e^(tX)]: Σ e^(tx) f(x) for a
+// discrete X (a pdf table, a formula on a few values, an infinite pdf whose sum
+// is a geometric series) and ∫ e^(tx) f(x) dx for a continuous one. The
+// continuous derivations go one step at a time, like the geometric ones: the
+// lines so far, then a box to fill. The notes do f(x) = e^(−x) on x > 0; the
+// exponential (β or λ) and the uniform are the same moves.
+
+// ---------- discrete: Σ e^(tx) f(x) ----------
+
+// t values for a finite sum (any t will do)
+const SUM_POINTS = [{ t: -0.8 }, { t: 0.3 }, { t: 1.2 }]
+// t values inside every series' region qe^t < 1 (q is at most 0.8, so t < 0.22)
+const SERIES_POINTS = [{ t: -1.2 }, { t: -0.4 }, { t: 0.15 }]
+
+const minus = v => (v < 0 ? `−${-v}` : `${v}`) // a number in plain text, with a real minus sign
+
+// e^(kt) as typed: 1, e^t, e^(-t), e^(2t), e^(0.3t)
+const expT = k => (k === 0 ? '1' : k === 1 ? 'e^t' : k === -1 ? 'e^(-t)' : `e^(${dec(k)}t)`)
+
+// Σ c·e^(kt) as typed, from [c, k] pairs, like powers combined and zero terms
+// dropped: 0.2+0.5e^t+0.3e^(2t)
+function sumT(pairs) {
+  const byK = new Map()
+  for (const [c, k] of pairs) byK.set(k, (byK.get(k) ?? 0) + c)
+  return [...byK]
+    .map(([k, c]) => [parseFloat(c.toFixed(6)), k])
+    .filter(([c]) => c !== 0)
+    .map(([c, k], i) => {
+      const size = Math.abs(c)
+      const term = k === 0 ? dec(size) : size === 1 ? expT(k) : `${dec(size)}${expT(k)}`
+      return c < 0 ? `-${term}` : i === 0 ? term : `+${term}`
+    })
+    .join('')
+}
+
+// f(x) = (numerator)/(sum of the numerators) on a few values
+const FINITE_PDFS = [
+  { tex: 'x', w: x => x, xs: [1, 2, 3] },
+  { tex: 'x', w: x => x, xs: [1, 2, 3, 4] },
+  { tex: 'x + 1', w: x => x + 1, xs: [0, 1, 2] },
+  { tex: 'x + 1', w: x => x + 1, xs: [0, 1, 2, 3] },
+  { tex: 'x + 2', w: x => x + 2, xs: [-1, 0, 1, 2] },
+  { tex: '4 - x', w: x => 4 - x, xs: [0, 1, 2, 3] },
+  { tex: '3 - x', w: x => 3 - x, xs: [0, 1, 2] },
+  { tex: '2x + 1', w: x => 2 * x + 1, xs: [0, 1, 2] },
+  { tex: 'x^2', w: x => x * x, xs: [1, 2, 3] },
+  { tex: 'x^2 + 1', w: x => x * x + 1, xs: [-1, 0, 1] },
+  { tex: '1', w: () => 1, xs: [1, 2, 3, 4] },
+  { tex: '1', w: () => 1, xs: [0, 1, 2] },
+]
 
 // ---------- f(x) = e^(−x), the notes' example ----------
 
@@ -54,30 +101,12 @@ const UNI_LINES = [
   '&= \\frac{1}{b-a}\\cdot\\frac{e^{bt} - e^{at}}{t}',
 ]
 
-// ---------- gamma ----------
-
-const GAM = ['t', 'x', 'beta', 'alpha']
-const GAM_POINTS = [
-  { t: 0.2, x: 1.3, beta: 2, alpha: 3 },
-  { t: -0.5, x: 0.7, beta: 0.5, alpha: 2 },
-  { t: 0.3, x: 2.2, beta: 1.5, alpha: 1.5 },
-]
-const GAM_LINES = [
-  'm_X(t) &= \\int_0^{\\infty} e^{tx}\\,\\frac{x^{\\alpha-1}e^{-x/\\beta}}{\\Gamma(\\alpha)\\beta^{\\alpha}}\\,dx',
-  '&= \\frac{1}{\\Gamma(\\alpha)\\beta^{\\alpha}}\\int_0^{\\infty} x^{\\alpha-1}e^{-x(1-\\beta t)/\\beta}\\,dx',
-  '&\\text{let } z = \\frac{x(1-\\beta t)}{\\beta}: \\; x = \\frac{\\beta z}{1-\\beta t}, \\; dx = \\frac{\\beta}{1-\\beta t}\\,dz',
-  '&= \\frac{1}{\\Gamma(\\alpha)\\beta^{\\alpha}}\\left(\\frac{\\beta}{1-\\beta t}\\right)^{\\alpha}\\int_0^{\\infty} z^{\\alpha-1}e^{-z}\\,dz',
-  '&= \\frac{1}{\\Gamma(\\alpha)\\beta^{\\alpha}}\\left(\\frac{\\beta}{1-\\beta t}\\right)^{\\alpha}\\Gamma(\\alpha)',
-]
-const GAMMA_HINT_TEXT =
-  'Combine the exponentials, substitute z = x(1 − βt)/β so the integral becomes Γ(α), then cancel Γ(α) and β^α.'
-
 const box = (vars, points, rest, opts) => formula({ vars, points, size: 'derivation', placeholder: `formula in ${vars.join(', ')}`, ...rest, ...opts })
 
 // ---------- specific densities for `numbers` ----------
 
 function specific() {
-  const kind = choice(['beta', 'beta', 'lambda', 'uniform', 'gamma', 'notes'])
+  const kind = choice(['beta', 'beta', 'lambda', 'uniform', 'notes'])
   if (kind === 'notes') {
     return {
       cases: 'e^{-x} & x > 0',
@@ -110,43 +139,25 @@ function specific() {
       hint: `Here λ = ${l}: combine to e^(−(${l} − t)x), integrate to 1/(${l} − t), and multiply by ${l}.`,
     }
   }
-  if (kind === 'uniform') {
-    const [a, b] = choice([
-      [0, 1],
-      [0, 2],
-      [0, 4],
-      [1, 3],
-      [2, 4],
-      [1, 2],
-    ])
-    const w = b - a
-    const top = a === 0 ? `e^(${b}t)-1` : `e^(${b}t)-e^(${a}t)`
-    const wt = w === 1 ? 't' : `${w}t`
-    return {
-      cases: `${w === 1 ? '1' : `\\frac{1}{${w}}`} & ${a} \\le x \\le ${b}`,
-      answer: `(${top})/(${wt})`,
-      choices: [`(${top})/${w === 1 ? '1' : w}`, `(${a === 0 ? `1-e^(${b}t)` : `e^(${a}t)-e^(${b}t)`})/(${wt})`, `(${top})/t^2`],
-      limit: null,
-      domain: 't ≠ 0',
-      hint: `Integrate e^(tx)/${w} from ${a} to ${b}: (e^(${b}t) − ${a === 0 ? '1' : `e^(${a}t)`})/(${w === 1 ? '' : w}t).`,
-    }
-  }
-  // gamma shapes with whole-number α
-  const [al, be, tex] = choice([
-    [2, 1, 'xe^{-x}'],
-    [3, 1, '\\frac{1}{2}x^{2}e^{-x}'],
-    [2, 2, '\\frac{1}{4}xe^{-x/2}'],
-    [3, 2, '\\frac{1}{16}x^{2}e^{-x/2}'],
-    [2, 3, '\\frac{1}{9}xe^{-x/3}'],
+  // uniform on [a, b]
+  const [a, b] = choice([
+    [0, 1],
+    [0, 2],
+    [0, 4],
+    [1, 3],
+    [2, 4],
+    [1, 2],
   ])
-  const bt = be === 1 ? 't' : `${be}t`
+  const w = b - a
+  const top = a === 0 ? `e^(${b}t)-1` : `e^(${b}t)-e^(${a}t)`
+  const wt = w === 1 ? 't' : `${w}t`
   return {
-    cases: `${tex} & x > 0`,
-    answer: `(1-${bt})^(-${al})`,
-    choices: [`(1-${bt})^${al}`, `(1-${bt})^(-${al - 1})`, `(1+${bt})^(-${al})`],
-    limit: 1 / be,
-    domain: be === 1 ? 't < 1' : `t < 1/${be}`,
-    hint: `This is gamma with α = ${al}, β = ${be}: m(t) = (1 − βt)^(−α).`,
+    cases: `${w === 1 ? '1' : `\\frac{1}{${w}}`} & ${a} \\le x \\le ${b}`,
+    answer: `(${top})/(${wt})`,
+    choices: [`(${top})/${w === 1 ? '1' : w}`, `(${a === 0 ? `1-e^(${b}t)` : `e^(${a}t)-e^(${b}t)`})/(${wt})`, `(${top})/t^2`],
+    limit: null,
+    domain: 't ≠ 0',
+    hint: `Integrate e^(tx)/${w} from ${a} to ${b}: (e^(${b}t) − ${a === 0 ? '1' : `e^(${a}t)`})/(${w === 1 ? '' : w}t).`,
   }
 }
 
@@ -160,20 +171,12 @@ const WHY = [
     right: 'The antiderivative −e^(−cx)/c goes to 0 at ∞ only when c = 1 − t > 0, so this needs t < 1.',
   },
   {
-    step: '\\int_0^{\\infty} z^{\\alpha-1}e^{-z}\\,dz = \\Gamma(\\alpha)',
-    right: 'That integral is the definition of the gamma function.',
-  },
-  {
     step: 'm_X(t) = \\int_{-\\infty}^{\\infty} e^{tx}f(x)\\,dx',
     right: 'Definition of the MGF: m_X(t) = E[e^(tX)], an expected value against the pdf.',
   },
   {
     step: '\\frac{1}{\\beta}\\cdot\\frac{1}{1/\\beta - t} = \\frac{1}{1-\\beta t}',
     right: 'Multiply the top and bottom by β.',
-  },
-  {
-    step: 'x = \\frac{\\beta z}{1-\\beta t}, \\quad dx = \\frac{\\beta}{1-\\beta t}\\,dz',
-    right: 'Substitute z = x(1 − βt)/β, solve for x, and differentiate.',
   },
   {
     step: '\\int_a^b e^{tx}\\,dx = \\frac{e^{bt} - e^{at}}{t}',
@@ -183,11 +186,28 @@ const WHY = [
 
 export default {
   id: 'continuous-mgf',
-  name: 'Deriving continuous MGFs',
-  description: '§4.2–4.3: m_X(t) = ∫ e^(tx) f(x) dx, and when it exists.',
+  name: 'Finding an MGF: E(e^(tX))',
+  description: '§3.4, §4.2: m_X(t) = Σ e^(tx) f(x) or ∫ e^(tx) f(x) dx.',
   learn: {
     formulas: [
+      { label: 'MGF of a discrete X', latex: 'm_X(t) = E[e^{tX}] = \\sum_x e^{tx} f(x)' },
       { label: 'MGF of a continuous X', latex: 'm_X(t) = E[e^{tX}] = \\int_{-\\infty}^{\\infty} e^{tx} f(x)\\,dx' },
+      {
+        label: 'Example: a table',
+        latex: stack(
+          '\\begin{array}{c|ccc} x & 0 & 1 & 2 \\\\ \\hline f(x) & 0.2 & 0.5 & 0.3 \\end{array}',
+          'm_X(t) = 0.2e^{0t} + 0.5e^{1t} + 0.3e^{2t} = 0.2 + 0.5e^{t} + 0.3e^{2t}',
+        ),
+      },
+      {
+        label: 'Example: a series, f(x) = 0.3(0.7)^x for x = 0, 1, 2, ...',
+        latex: derivation([
+          'm_X(t) &= \\sum_{x=0}^{\\infty} e^{tx}(0.3)(0.7)^x',
+          '&= 0.3\\sum_{x=0}^{\\infty} (0.7e^t)^x',
+          '&= \\frac{0.3}{1 - 0.7e^t}, \\quad t < -\\ln 0.7',
+        ]),
+      },
+      { label: 'Geometric series (on the sheet)', latex: '\\sum_{k=1}^{\\infty} ar^{k-1} = \\frac{a}{1-r}, \\; |r| < 1' },
       { label: 'The key integral', latex: '\\int_0^{\\infty} e^{-cx}\\,dx = \\frac{1}{c}, \\quad c > 0' },
       { label: 'The notes: f(x) = e^(−x), x > 0', latex: 'm_X(t) = \\frac{1}{1-t}, \\quad t < 1' },
       {
@@ -195,18 +215,142 @@ export default {
         latex: '\\tfrac{1}{\\beta}e^{-x/\\beta}: \\; \\frac{1}{1-\\beta t}, \\; t < \\tfrac{1}{\\beta} \\qquad \\lambda e^{-\\lambda x}: \\; \\frac{\\lambda}{\\lambda - t}, \\; t < \\lambda',
       },
       { label: 'Uniform on [a, b]', latex: 'm_X(t) = \\frac{e^{bt} - e^{at}}{(b-a)t}, \\; t \\ne 0, \\quad m_X(0) = 1' },
-      { label: 'Gamma', latex: 'm_X(t) = (1 - \\beta t)^{-\\alpha}, \\quad t < \\frac{1}{\\beta}' },
     ],
     how: [
-      'Start from the definition: m_X(t) = E[e^(tX)] = ∫ e^(tx) f(x) dx over the support.',
-      'Combine the exponentials (same base, add the exponents): e^(tx)·e^(−x) = e^(−(1 − t)x).',
+      'Start from the definition, m_X(t) = E[e^(tX)]: Σ e^(tx) f(x) over the values of a discrete X, ∫ e^(tx) f(x) dx over the support of a continuous one.',
+      'A table: one term per column, f(x)e^(tx). x = 0 gives the constant f(0) (e^0 = 1), x = 1 gives f(1)e^t, x = 2 gives f(2)e^(2t). Check: at t = 0 the terms add to 1.',
+      'A formula on a few values, like f(x) = x/6 for x = 1, 2, 3: list f(1), f(2), f(3) first, then add: (e^t + 2e^(2t) + 3e^(3t))/6.',
+      'An infinite pdf like f(x) = 0.3(0.7)^x for x = 0, 1, 2, ...: e^(tx)(0.7)^x = (0.7e^t)^x, so the MGF is 0.3 times a geometric series with first term 1 and ratio 0.7e^t, which sums to 0.3/(1 − 0.7e^t). It converges when 0.7e^t < 1, so t < −ln 0.7.',
+      'Starting at x = 1, as in f(x) = (0.7)^(x−1)(0.3): write e^(tx) = e^t·e^(t(x−1)) and pull out 0.3e^t. The rest is Σ (0.7e^t)^(x−1), first term 1 again, so m_X(t) = 0.3e^t/(1 − 0.7e^t).',
+      'Continuous: combine the exponentials (same base, add the exponents): e^(tx)·e^(−x) = e^(−(1 − t)x).',
       '∫ from 0 to ∞ of e^(−cx) dx = 1/c, but only if c > 0; otherwise it blows up. That condition is where the MGF exists: 1 − t > 0, so t < 1.',
       'With β: e^(tx)e^(−x/β) = e^(−(1/β − t)x), so m(t) = (1/β)·1/(1/β − t) = 1/(1 − βt) for t < 1/β. With rate λ: λ/(λ − t) for t < λ.',
       'Uniform: (1/(b − a)) ∫ from a to b of e^(tx) dx = (e^(bt) − e^(at))/((b − a)t). A finite interval always converges; t = 0 just gives m(0) = 1.',
-      'Gamma: combine to x^(α−1)e^(−x(1 − βt)/β), substitute z = x(1 − βt)/β, and the integral becomes Γ(α)(β/(1 − βt))^α. Everything cancels to (1 − βt)^(−α).',
     ],
   },
   templates: [
+    {
+      id: 'discrete-table',
+      generate() {
+        const xs = choice([
+          [0, 1, 2],
+          [1, 2, 3],
+          [-1, 0, 1],
+          [0, 1, 2, 3],
+          [-1, 0, 1, 2],
+          [1, 2, 3, 4],
+        ])
+        const ps = randProbs(xs.length)
+        const fs = ps.map(v => v / 100)
+        const last = xs.length - 1
+        const zero = xs.indexOf(0)
+        const unweighted = sumT(xs.map(x => [1, x]))
+        // x and f(x) swapped; on −1, 0, 1 with f(−1) = f(1) that cancels to 0,
+        // so then the values taken as equally likely
+        const swapped = sumT(xs.map((x, i) => [x, fs[i]])) || `(${unweighted})/${xs.length}`
+        return formula({
+          ask: 'X has this pdf. Find its moment generating function and type m_X(t).',
+          latex: stack(pdfTable(xs, ps), 'm_X(t) = \\,?'),
+          size: 'small',
+          vars: ['t'],
+          points: SUM_POINTS,
+          answer: sumT(xs.map((x, i) => [fs[i], x])),
+          // e^(xt) unweighted, the derivative Σ x f(x)e^(xt), the roles swapped
+          choices: [unweighted, sumT(xs.map((x, i) => [x * fs[i], x])), swapped],
+          placeholder: 'm(t) in terms of t',
+          hint: {
+            latex: 'm_X(t) = E[e^{tX}] = \\sum_x e^{tx} f(x)',
+            text: `One term per column, f(x) times e^(tx): the x = ${xs[last]} column gives ${sumT([[fs[last], xs[last]]])}${zero < 0 ? '' : `, and the x = 0 column gives the constant ${dec(fs[zero])} (e^0 = 1)`}. Check: at t = 0 the terms add to 1.`,
+          },
+        })
+      },
+    },
+    {
+      id: 'discrete-formula',
+      generate() {
+        const d = choice(FINITE_PDFS)
+        const S = d.xs.reduce((s, x) => s + d.w(x), 0)
+        const top = sumT(d.xs.map(x => [d.w(x), x]))
+        // e^(E[X] t), pulling the expectation inside the exponential (or, when
+        // E[X] = 0, the values taken as equally likely)
+        const M = d.xs.reduce((s, x) => s + x * d.w(x), 0)
+        const g = gcd(Math.abs(M), S)
+        const kt = M / g === 1 ? 't' : M / g === -1 ? '-t' : `${M / g}t`
+        const atMean = M === 0 ? `(${sumT(d.xs.map(x => [1, x]))})/${d.xs.length}` : S / g === 1 ? `e^(${kt})` : `e^(${kt}/${S / g})`
+        return formula({
+          ask: 'X has this pdf. Find its moment generating function and type m_X(t).',
+          latex: stack(`f(x) = \\frac{${d.tex}}{${S}}, \\quad x = ${d.xs.join(', ')}`, 'm_X(t) = \\,?'),
+          size: 'small',
+          vars: ['t'],
+          points: SUM_POINTS,
+          answer: `(${top})/${S}`,
+          choices: [top, `(${sumT(d.xs.map(x => [x * d.w(x), x]))})/${S}`, atMean],
+          placeholder: 'm(t) in terms of t',
+          hint: {
+            latex: 'm_X(t) = \\sum_x e^{tx} f(x)',
+            text: `List the values first: ${d.xs.map(x => `f(${minus(x)}) = ${d.w(x)}/${S}`).join(', ')}. Then add up f(x)e^(tx); the ${S} can stay as one common denominator.`,
+          },
+        })
+      },
+    },
+    {
+      id: 'discrete-series',
+      generate() {
+        const p = choice([0.2, 0.25, 0.3, 0.4, 0.6, 0.7, 0.75, 0.8])
+        const P = dec(p)
+        const Q = dec(1 - p)
+        // f(x) = pq^x from x = 0, or q^(x-1)p from x = 1
+        const zero = Math.random() < 0.5
+        const domain = `t < −ln ${Q}`
+        const hint = zero
+          ? {
+              latex: '\\sum_{x=0}^{\\infty} e^{tx}\\,pq^x = p\\sum_{x=0}^{\\infty} (qe^t)^x = \\frac{p}{1 - qe^t}',
+              text: `e^(tx)(${Q})^x = (${Q}e^t)^x, so pulling out ${P} leaves a geometric series with first term 1 (the x = 0 term) and ratio ${Q}e^t: first term over (1 − ratio). It converges when ${Q}e^t < 1, so ${domain}.`,
+            }
+          : {
+              latex: '\\sum_{x=1}^{\\infty} e^{tx}\\,q^{x-1}p = pe^t\\sum_{x=1}^{\\infty} (qe^t)^{x-1} = \\frac{pe^t}{1 - qe^t}',
+              text: `Write e^(tx) = e^t·e^(t(x−1)) and pull out ${P}e^t: what is left is Σ (${Q}e^t)^(x−1), a geometric series with first term 1 (the x = 1 term) and ratio ${Q}e^t. It converges when ${Q}e^t < 1, so ${domain}.`,
+            }
+        const step = choice(['final', 'final', 'ratio', 'sum'])
+        if (step === 'final') {
+          const pdf = zero ? `${P}(${Q})^x, \\quad x = 0, 1, 2, \\ldots` : `(${Q})^{x-1}(${P}), \\quad x = 1, 2, 3, \\ldots`
+          return formula({
+            ask: `X has this pdf. Find its moment generating function and type m_X(t) (for ${domain}).`,
+            latex: stack(`f(x) = ${pdf}`, 'm_X(t) = \\,?'),
+            size: 'small',
+            vars: ['t'],
+            points: SERIES_POINTS,
+            answer: zero ? `${P}/(1-${Q}e^t)` : `${P}e^t/(1-${Q}e^t)`,
+            // the other starting point's answer, p and q mixed up, the p left out
+            choices: zero ? [`${P}e^t/(1-${Q}e^t)`, `${P}/(1-${P}e^t)`, `1/(1-${Q}e^t)`] : [`${P}/(1-${Q}e^t)`, `${P}e^t/(1-${P}e^t)`, `e^t/(1-${Q}e^t)`],
+            placeholder: 'm(t) in terms of t',
+            hint,
+          })
+        }
+        const sum = `\\sum_{x=${zero ? 0 : 1}}^{\\infty}`
+        const power = zero ? 'x' : '{x-1}'
+        const lead = zero ? P : `${P}e^t` // what comes out in front of the series
+        const def = `m_X(t) &= E[e^{tX}] = ${sum} e^{tx}${zero ? `(${P})(${Q})^x` : `(${Q})^{x-1}(${P})`}`
+        if (step === 'ratio') {
+          return box(
+            ['t'],
+            SERIES_POINTS,
+            { ask: 'Write the MGF as a geometric series: what goes in the box?', latex: derivation([def, `&= ${lead}${sum} \\left(${BOX}\\right)^${power}`]), hint },
+            { answer: `${Q}e^t`, choices: [`${P}e^t`, `e^(${Q}t)`, `${Q}+e^t`] },
+          )
+        }
+        return box(
+          ['t'],
+          SERIES_POINTS,
+          {
+            ask: `Sum the geometric series (for ${domain}): what goes in the box?`,
+            latex: derivation([def, `&= ${lead}${sum} (${Q}e^t)^${power}`, `&= ${lead}\\cdot ${BOX}`]),
+            hint,
+          },
+          { answer: `1/(1-${Q}e^t)`, choices: [`${Q}e^t/(1-${Q}e^t)`, `1/(1-${P}e^t)`, `1/(1+${Q}e^t)`] },
+        )
+      },
+    },
     {
       id: 'combine',
       generate() {
@@ -362,60 +506,6 @@ export default {
           { ask: 'X is uniform on [a, b]. Simplify: what goes in the box?', latex: derivation([...UNI_LINES, `&= ${BOX}, \\quad t \\ne 0`]), hint },
           { answer: '(e^(bt)-e^(at))/((b-a)t)', choices: ['(e^(bt)-e^(at))/(b-a)', '(e^(at)-e^(bt))/((b-a)t)', '(e^(bt)-e^(at))t/(b-a)'] },
         )
-      },
-    },
-    {
-      id: 'gamma',
-      generate() {
-        const step = choice(['exponent', 'dx', 'constant', 'final'])
-        const hint = {
-          latex: 'm_X(t) = \\frac{1}{\\Gamma(\\alpha)\\beta^{\\alpha}}\\left(\\frac{\\beta}{1-\\beta t}\\right)^{\\alpha}\\Gamma(\\alpha) = (1-\\beta t)^{-\\alpha}',
-          text: GAMMA_HINT_TEXT,
-        }
-        const S = {
-          exponent: [
-            {
-              ask: 'Gamma MGF. Combine the exponentials: what goes in the box?',
-              latex: derivation([GAM_LINES[0], `&= \\frac{1}{\\Gamma(\\alpha)\\beta^{\\alpha}}\\int_0^{\\infty} x^{\\alpha-1}e^{${BOX}}\\,dx`]),
-              hint: { latex: 'tx - \\frac{x}{\\beta} = -\\frac{x(1-\\beta t)}{\\beta}', text: 'Add the exponents tx and −x/β, then factor out −x/β.' },
-            },
-            { answer: '-x(1-beta t)/beta', choices: ['-x(1+beta t)/beta', '-tx^2/beta', '-x(1-t)/beta'] },
-          ],
-          dx: [
-            {
-              ask: 'Gamma MGF. Substitute z = x(1 − βt)/β: what goes in the box?',
-              latex: derivation([
-                ...GAM_LINES.slice(0, 2),
-                `&\\text{let } z = \\frac{x(1-\\beta t)}{\\beta}: \\; x = \\frac{\\beta z}{1-\\beta t}, \\; dx = ${BOX}\\,dz`,
-              ]),
-              hint: { latex: 'x = \\frac{\\beta}{1-\\beta t}\\,z \\;\\Rightarrow\\; dx = \\frac{\\beta}{1-\\beta t}\\,dz', text: 'x is a constant times z, so dx is that same constant times dz.' },
-            },
-            { answer: 'beta/(1-beta t)', choices: ['(1-beta t)/beta', 'beta', '1/(1-beta t)'] },
-          ],
-          constant: [
-            {
-              ask: 'Gamma MGF. After substituting, what comes out in front of the z-integral?',
-              latex: derivation([
-                ...GAM_LINES.slice(0, 3),
-                `&= \\frac{1}{\\Gamma(\\alpha)\\beta^{\\alpha}}\\,${BOX}\\int_0^{\\infty} z^{\\alpha-1}e^{-z}\\,dz`,
-              ]),
-              hint: {
-                latex: 'x^{\\alpha-1}\\,dx = \\left(\\frac{\\beta z}{1-\\beta t}\\right)^{\\alpha-1}\\frac{\\beta}{1-\\beta t}\\,dz = \\left(\\frac{\\beta}{1-\\beta t}\\right)^{\\alpha} z^{\\alpha-1}\\,dz',
-                text: 'x^(α−1) gives the constant to the power α − 1, and dx gives one more factor of it.',
-              },
-            },
-            { answer: '(beta/(1-beta t))^alpha', choices: ['(beta/(1-beta t))^(alpha-1)', 'beta/(1-beta t)', '((1-beta t)/beta)^alpha'] },
-          ],
-          final: [
-            {
-              ask: 'Gamma MGF. Use ∫ z^(α−1)e^(−z) dz = Γ(α) and simplify: what goes in the box?',
-              latex: derivation([...GAM_LINES, `&= ${BOX}, \\quad t < \\frac{1}{\\beta}`]),
-              hint,
-            },
-            { answer: '(1-beta t)^(-alpha)', choices: ['(1-beta t)^alpha', '(1-t/beta)^(-alpha)', '(1+beta t)^(-alpha)'] },
-          ],
-        }[step]
-        return box(GAM, GAM_POINTS, ...S)
       },
     },
     {

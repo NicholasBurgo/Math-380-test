@@ -4,6 +4,7 @@ import Options from './Options.jsx'
 import ScratchOverlay from './ScratchOverlay.jsx'
 import { checkAnswer } from '../engine/check.js'
 import { createFreshPicker, pickWeightedTopic } from '../engine/pick.js'
+import { guideTopics } from '../engine/guide.js'
 import { recordAnswer, recordPage } from '../engine/stats.js'
 import { toLatex } from '../engine/expr.js'
 import { useStudyAids } from './Tables.jsx'
@@ -19,10 +20,9 @@ function clock(s) {
 // One question per study-guide line, drawn from that line's topics (colder
 // topics more often), in the guide's order.
 function buildTest(cls, unit) {
-  const byId = Object.fromEntries(unit.topics.map(t => [t.id, t]))
   const fresh = createFreshPicker()
   return unit.guide
-    .map(g => ({ g, topics: g.topics.map(id => byId[id]).filter(t => t?.templates?.length) }))
+    .map(g => ({ g, topics: guideTopics(unit, g) }))
     .filter(({ topics }) => topics.length > 0)
     .map(({ g, topics }, i) => {
       const topic = pickWeightedTopic(cls.id, topics)

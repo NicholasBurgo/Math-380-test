@@ -1,4 +1,4 @@
-import { formulaAnswer, toLatex } from '../../../engine/expr.js'
+import { evalExpr, formulaAnswer, parseExpr, toLatex } from '../../../engine/expr.js'
 import { choice } from '../../../engine/rand.js'
 
 export { tolFor, probs } from '../util.js'
@@ -33,6 +33,51 @@ export function formula({ answer, vars, points, choices = [], ...rest }) {
     accept: formulaAnswer(answer, vars, points),
     expr: { vars },
     choices,
+  }
+}
+
+// Typed antiderivatives: a trailing + C is optional, and C (or c) anywhere is a
+// constant. Both letters are variables so a lowercase "+ c" still parses.
+const ANTI_VARS = ['x', 'C', 'c']
+// where slopes are compared: away from x = 0, where integrands like x·e^(ax) vanish
+const ANTI_XS = [-1.3, -0.6, 0.7, 1.4]
+
+// Slopes of a typed formula in x at ANTI_XS (five-point central differences),
+// or null when it does not parse or evaluate.
+function slopes(raw) {
+  try {
+    const ast = parseExpr(String(raw).replace(/\+\s*c\s*$/i, ''), ANTI_VARS)
+    const F = x => evalExpr(ast, { x, C: 0.7, c: 0.7 })
+    const h = 1e-3
+    return ANTI_XS.map(x => (8 * (F(x + h) - F(x - h)) - (F(x + 2 * h) - F(x - 2 * h))) / (12 * h))
+  } catch {
+    return null
+  }
+}
+const sameSlopes = (s, t) =>
+  s !== null && s.every((v, i) => Number.isFinite(v) && Math.abs(v - t[i]) <= 1e-6 * Math.max(Math.abs(v), Math.abs(t[i])) + 1e-9)
+
+// A problem whose answer is an antiderivative of `integrand` (a formula in x).
+// Typed answers are graded by their derivative, so any constant is right,
+// written + C or not. `choices` are wrong antiderivatives: any that turn out
+// right after all (a slip can vanish for a = 1) or repeat an earlier one up to
+// a constant are dropped, and the first three kept.
+export function antiderivative({ integrand, answer, choices = [], ...rest }) {
+  const f = parseExpr(integrand, ['x'])
+  const want = ANTI_XS.map(x => evalExpr(f, { x }))
+  const kept = []
+  for (const c of choices) {
+    const s = slopes(c)
+    if (s && !sameSlopes(s, want) && !kept.some(k => sameSlopes(k.s, s))) kept.push({ c, s })
+  }
+  return {
+    placeholder: 'an antiderivative in x (+ C optional)',
+    ...rest,
+    answer,
+    answerLatex: rest.answerLatex ?? toLatex(answer, ANTI_VARS),
+    accept: raw => sameSlopes(slopes(raw), want),
+    expr: { vars: ANTI_VARS },
+    choices: kept.slice(0, 3).map(k => k.c),
   }
 }
 

@@ -36,6 +36,13 @@ const MGF_LINES = [
   '&= \\frac{p}{q} \\cdot \\frac{qe^t}{1 - qe^t}',
 ]
 
+// A geometric X with a specific p, for deriving its cdf or MGF with numbers in.
+function numbers() {
+  const p = someP([0.1, 0.2, 0.25, 0.3, 0.4, 0.6, 0.7, 0.75, 0.8, 0.9])
+  return { P: dec(p), Q: dec(1 - p) }
+}
+const NUMBER_POINTS = [{ t: -1, x: 2 }, { t: 0.05, x: 4 }, { t: -0.3, x: 7 }]
+
 export default {
   id: 'geometric-derive',
   name: 'Geometric derivations',
@@ -259,33 +266,33 @@ export default {
       },
     },
     {
-      id: 'numbers',
+      id: 'mgf-numbers',
       generate() {
-        const p = someP([0.1, 0.2, 0.25, 0.3, 0.4, 0.6, 0.7, 0.75, 0.8, 0.9])
-        const P = dec(p)
-        const Q = dec(1 - p)
-        const what = choice(['mgf', 'cdf'])
-        const pts = [{ t: -1, x: 2 }, { t: 0.05, x: 4 }, { t: -0.3, x: 7 }]
-        if (what === 'mgf') {
-          return formula({
-            ask: `X is geometric with p = ${P}. Derive its MGF and type m_X(t).`,
-            latex: 'm_X(t) = \\,?',
-            vars: ['t'],
-            points: pts,
-            answer: `${P}e^t/(1-${Q}e^t)`,
-            choices: [`${P}/(1-${Q}e^t)`, `${P}e^t/(1-${P}e^t)`, `${Q}e^t/(1-${P}e^t)`],
-            placeholder: 'm(t) in terms of t',
-            hint: {
-              latex: 'm_X(t) = \\frac{pe^t}{1 - qe^t}',
-              text: `Sum e^(tx) q^(x−1) p as a geometric series in qe^t; here q = ${Q}.`,
-            },
-          })
-        }
+        const { P, Q } = numbers()
+        return formula({
+          ask: `X is geometric with p = ${P}. Derive its MGF and type m_X(t).`,
+          latex: 'm_X(t) = \\,?',
+          vars: ['t'],
+          points: NUMBER_POINTS,
+          answer: `${P}e^t/(1-${Q}e^t)`,
+          choices: [`${P}/(1-${Q}e^t)`, `${P}e^t/(1-${P}e^t)`, `${Q}e^t/(1-${P}e^t)`],
+          placeholder: 'm(t) in terms of t',
+          hint: {
+            latex: 'm_X(t) = \\frac{pe^t}{1 - qe^t}',
+            text: `Sum e^(tx) q^(x−1) p as a geometric series in qe^t; here q = ${Q}.`,
+          },
+        })
+      },
+    },
+    {
+      id: 'cdf-numbers',
+      generate() {
+        const { P, Q } = numbers()
         return formula({
           ask: `X is geometric with p = ${P}. Derive its cdf and type F(x) for x = 1, 2, 3, ...`,
           latex: 'F(x) = \\,?',
           vars: ['x'],
-          points: pts,
+          points: NUMBER_POINTS,
           answer: `1-${Q}^x`,
           choices: [`${Q}^x`, `1-${Q}^(x-1)`, `1-${P}^x`],
           placeholder: 'F(x) in terms of x',

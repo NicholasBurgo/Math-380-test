@@ -1,5 +1,5 @@
-import { choice } from '../../../engine/rand.js'
-import { dec, num, tolFor } from './util.js'
+import { choice, shuffle } from '../../../engine/rand.js'
+import { dec, formula, num, tolFor } from './util.js'
 
 // §4.3: in a Poisson process with rate λ, the time W of the first event is
 // exponential with β = 1/λ. A story gives the rate one of two ways, "3 per hour"
@@ -101,6 +101,15 @@ function pickTimes(beta, count = 1) {
   return picked.sort((a, b) => a - b).map(t => parseFloat(t.toFixed(2)))
 }
 
+// A rate r as typed in a formula and as shown: (1/5) and -x/5 for "1 every 5"
+// (`frac`), 0.25 and -0.25x for "0.25 per hour". A reciprocal that is not a
+// clean decimal (1/3) stays a fraction either way.
+function rateTerms(r, frac) {
+  const k = Math.round(1 / r)
+  if (r < 1 && Math.abs(1 / r - k) < 1e-9 && (frac || !clean(r, 4))) return { coef: `(1/${k})`, power: `-x/${k}`, tex: `\\tfrac{1}{${k}}` }
+  return r === 1 ? { coef: '', power: '-x', tex: '' } : { coef: dec(r), power: `-${dec(r)}x`, tex: dec(r) }
+}
+
 // how λt = t/β reads in a solution
 function exponent(pr, t) {
   const x = t / pr.beta
@@ -118,6 +127,7 @@ export default {
   description: '§4.3: the wait for the first event of a Poisson process.',
   learn: {
     formulas: [
+      { label: 'Time of the first event in a Poisson process with rate λ', latex: 'f(x) = \\lambda e^{-\\lambda x}, \\quad x > 0' },
       { label: 'Exponential pdf: gamma with α = 1 (on the sheet)', latex: 'f(x) = \\frac{1}{\\beta}e^{-x/\\beta}, \\quad x > 0' },
       { label: 'Wait W for the first event, rate λ', latex: 'W \\text{ is exponential}, \\quad \\beta = \\frac{1}{\\lambda}' },
       { label: 'cdf: the first event by time t', latex: 'P(W \\le t) = 1 - e^{-\\lambda t}' },
@@ -127,6 +137,7 @@ export default {
     ],
     how: [
       'λ is the rate (events per unit of time) and β = 1/λ is the mean wait. "1 every 5 hours" means β = 5 hours, λ = 1/5 per hour.',
+      'The notes write the pdf with the rate: f(x) = λe^(−λx) for x > 0. With β = 1/λ it is the sheet\'s (1/β)e^(−x/β). "1 every 5 hours" gives (1/5)e^(−x/5); "3 per hour" gives 3e^(−3x).',
       'Put the rate and the time in the same unit before you multiply: 3 per hour over 20 minutes is λt = 3 · (20/60) = 1.',
       'W > t means no event by time t. The count by then is Poisson with mean λt, and P(0 events) = e^(−λt).',
       'At most t is the complement, 1 − e^(−λt) (the paramecium: β = 5, t = 4, 1 − e^(−0.8) = 0.5507). Between a and b: e^(−λa) − e^(−λb).',
@@ -263,6 +274,48 @@ export default {
           },
           // as if W restarted at a, the cdf at b alone, the tail past a alone
           distractors: keep(1 - Math.exp(-(xb - xa)), 1 - Math.exp(-xb), Math.exp(-xa), Math.exp(-xb)),
+        }
+      },
+    },
+    {
+      id: 'pdf',
+      generate() {
+        for (;;) {
+          const story = choice(STORIES)
+          const unit = choice(unitsOf(story))
+          // W in the rate's own unit, so λ goes straight into the formula
+          const pr = makeProcess(story, unit, Math.random() < 0.5 ? 'every' : 'rate')
+          if (pr.lambda === 1) continue // e^(−x) would make forgetting λ right too
+          const frac = pr.form === 'every'
+          const lam = rateTerms(pr.lambda, frac)
+          const inv = rateTerms(1 / pr.lambda, !frac) // λ and β mixed up
+          const pdf = `${lam.coef}e^(${lam.power})`
+          const cdf = `1 - e^(${lam.power})`
+          const isCdf = Math.random() < 0.35
+          const lamLine = frac ? `\\beta = ${pr.m}, \\; \\lambda = \\tfrac{1}{${pr.m}}` : `\\lambda = ${dec(pr.lam)}`
+          return formula({
+            ask: isCdf ? 'Write the cdf F(x) = P(W ≤ x) for x > 0.' : 'Write the pdf of W. Type f(x) for x > 0.',
+            text: `${pr.sentence} ${waitLine(story, unit)}`,
+            latex: isCdf ? 'F(x) = P(W \\le x) = \\,?' : 'f(x) = \\,?',
+            vars: ['x'],
+            points: [0.3, 0.9, 1.7, 2.6].map(r => ({ x: r * pr.beta })),
+            answer: isCdf ? cdf : pdf,
+            answerLatex: isCdf
+              ? `${lamLine}: \\quad F(x) = 1 - e^{-\\lambda x} = 1 - e^{${lam.power}}, \\; x > 0`
+              : `${lamLine}: \\quad f(x) = \\lambda e^{-\\lambda x} = ${lam.tex}e^{${lam.power}}, \\; x > 0`,
+            // pdf: forgot the λ in front, λ and β swapped, swapped in the exponent only, the cdf
+            // cdf: the tail P(W > x), 1 − the pdf, λ and β swapped, the pdf
+            choices: shuffle(
+              isCdf
+                ? [`e^(${lam.power})`, `1 - ${pdf}`, `1 - e^(${inv.power})`, pdf]
+                : [`e^(${lam.power})`, `${inv.coef}e^(${inv.power})`, `${lam.coef}e^(${inv.power})`, cdf],
+            ),
+            placeholder: isCdf ? 'F(x) in terms of x' : 'f(x) in terms of x',
+            hint: {
+              latex: 'f(x) = \\lambda e^{-\\lambda x}, \\quad F(x) = P(W \\le x) = 1 - e^{-\\lambda x}, \\quad x > 0',
+              text: 'λ is the number of events per unit of W: "1 every 5 hours" is λ = 1/5 (β = 5), "3 per hour" is λ = 3. The pdf is λe^(−λx). The cdf is 1 minus the chance of no event by x, 1 − e^(−λx).',
+            },
+          })
         }
       },
     },

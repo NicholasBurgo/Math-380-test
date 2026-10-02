@@ -4,7 +4,8 @@ import { dec, num } from './util.js'
 
 // §4.4 word problems: x ↔ z ↔ left area ↔ probability. Forward problems round
 // z = (x − μ)/σ to 2 decimals and read zTable; backward ones read zForLeftArea
-// and convert back with x = μ + zσ. Both are what the Tables panel shows.
+// and convert back with x = μ + zσ. Both are what the Tables panel shows. A
+// percentile is a left area: the 99.53rd percentile has 0.9953 to its left.
 
 const ASK = 'Use the standard normal table (Tables button).'
 const AREA_TOL = 0.00015
@@ -65,6 +66,7 @@ const STORIES = [
     more: x => `last more than ${x} hours`,
     between: (a, b) => `last between ${a} and ${b} hours`,
     noun: 'battery life',
+    nouns: 'battery lives',
   },
   {
     what: 'Scores on an exam are normal',
@@ -79,6 +81,7 @@ const STORIES = [
     noun: 'score',
   },
   {
+    // the notes' IQ examples (percentiles, the middle 95%)
     what: 'IQ scores are normal',
     mu: [100],
     sigma: [15],
@@ -89,6 +92,7 @@ const STORIES = [
     more: x => `have an IQ above ${x}`,
     between: (a, b) => `have an IQ between ${a} and ${b}`,
     noun: 'IQ score',
+    iq: true,
   },
   {
     what: 'The weight of a cereal box (in grams) is normal',
@@ -129,6 +133,16 @@ const STORIES = [
     noun: 'commute time',
   },
 ]
+const IQ = STORIES.filter(st => st.iq)
+const plural = st => st.nouns ?? `${st.noun}s`
+const article = word => (/^[aeiou]/i.test(word) ? 'an' : 'a')
+
+// A percent as an ordinal: 1st, 2.5th, 11th, 99.53rd.
+function ordinal(v) {
+  const s = dec(v)
+  const end = !s.includes('.') && /1[123]$/.test(s) ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[s.slice(-1)] ?? 'th'
+  return `${s}${end}`
+}
 
 // A story with its μ and σ. Now and then the variance is given instead of σ.
 function setup(pool = STORIES, allowVariance = true) {
@@ -189,14 +203,19 @@ export default {
       { label: 'More than', latex: 'P(X > x) = 1 - P(Z < z)' },
       { label: 'Between', latex: '\\begin{gathered} P(a < X < b) \\\\ = P(Z < z_b) - P(Z < z_a) \\end{gathered}' },
       { label: 'Outside a and b', latex: '1 - P(a < X < b)' },
+      { label: 'Percentile = left area', latex: 'p\\text{th percentile } x: \\; P(X < x) = \\frac{p}{100}' },
     ],
     how: [
       'x → z: subtract the mean, divide by σ (if you are given σ², take its square root first). Round z to 2 decimals to match the table.',
       'z → left area: row = ones and tenths, column = hundredths.',
       'Left area → probability: "less than" is the entry, "more than" is 1 − entry, "between" is a difference of entries, "outside" is 1 − the between area.',
+      'Percentile = left area: the 90th percentile is the x with 0.90 of the area to its left.',
       'Hydrocarbons (μ = 1, σ = 0.25): P(0.9 < X < 1.54) uses z = −0.40 and 2.16, so 0.9846 − 0.3446 = 0.6400.',
+      'IQ (μ = 100, σ = 15): a score of 139 has z = (139 − 100)/15 = 2.6, row 2.6 column 0.00 reads 0.9953, so it is the 99.53rd percentile.',
       'Backwards (probability → x): make it a LEFT area, find z in the table, then x = μ + zσ.',
       'Radiation (μ = 500, σ = 150): only 5% survive above x means P(X > x) = 0.05, left area 0.95, z = 1.645, x = 500 + 1.645(150) = 746.75.',
+      'IQ 99.7th percentile: find 0.9970 in the table at row 2.7 column 0.05, so z = 2.75. Then 2.75 = (x − 100)/15 gives x = 141.25.',
+      'IQ middle 95%: the two ends total 0.05, so each end is 0.025 and z = ±1.96. x = 100 ± 1.96(15) = 100 ± 29.4: between 70.6 and 129.4.',
     ],
   },
   templates: [
@@ -342,6 +361,57 @@ export default {
       },
     },
     {
+      id: 'percentile',
+      generate() {
+        const pool = Math.random() < 0.5 ? IQ : STORIES
+        if (Math.random() < 0.5) {
+          // a score's percentile: the left area at its z
+          const s = setup(pool)
+          const p = pickX(s, -2.2, 2.9)
+          const e = zTable(p.zr)
+          return {
+            ask: ASK,
+            text: `${s.intro} What percentile is ${article(s.st.noun)} ${s.st.noun} of ${dec(p.x)}${s.st.unit}?`,
+            latex: `x = ${dec(p.x)}, \\quad \\text{percentile} = \\,?`,
+            answer: e,
+            answerLatex: `${s.sigmaLine}${zLine(s, p)}: \\; \\text{the ${ordinal(e * 100)} percentile} = P(Z < ${zs(p.zr)}) = ${f4(e)}`,
+            placeholder: 'e.g. 0.9953 or 99.53',
+            tolerance: AREA_TOL,
+            hint: {
+              latex: '\\text{percentile} = \\text{left area} = P(Z < z), \\quad z = \\frac{x - \\mu}{\\sigma}',
+              text: 'A percentile is a left area. Standardize, round z to 2 decimals, and read the entry: 0.9953 means the 99.53rd percentile. Do not take 1 − entry: that is the area to the right.',
+            },
+            // the right tail, σ² for σ, z off by a row either way
+            distractors: probs(1 - e, zTable((p.x - s.mu) / (s.sigma * s.sigma)), zTable(p.zr + 0.1), zTable(p.zr - 0.1)),
+          }
+        }
+        // a percentile's score: left area p/100 back to z, then to x
+        for (;;) {
+          const s = setup(pool, false)
+          const P = choice([2.5, 5, 10, 20, 25, 75, 80, 90, 90, 95, 95, 97.5, 99, 99, 99.7, 99.7])
+          const r = zForLeftArea(P / 100)
+          if (r.hi - r.lo > 0.011) continue
+          const x = s.mu + r.z * s.sigma
+          const tie = r.lo !== r.hi ? `\\text{ (halfway between ${zs(r.lo)} and ${zs(r.hi)})}` : ''
+          return {
+            ask: ASK,
+            text: `${s.intro} What ${s.st.noun} is the ${ordinal(P)} percentile?`,
+            latex: `\\text{the ${ordinal(P)} percentile: } x = \\,?`,
+            answer: x,
+            answerLatex: `\\text{left area } ${dec(P / 100)}: \\; z = ${num(r.z)}${tie}, \\; x = ${dec(s.mu)} + (${num(r.z)})(${dec(s.sigma)}) = ${num(x)}`,
+            placeholder: 'e.g. 141.25',
+            tolerance: s.sigma * Math.max(0.0051, (r.hi - r.lo) / 2 + 0.0001) + 0.01,
+            hint: {
+              latex: 'p\\text{th percentile} \\to \\text{left area } \\tfrac{p}{100} \\to z \\to x = \\mu + z\\sigma',
+              text: 'The pth percentile has p% of the area to its LEFT: the 99.7th is left area 0.9970. Find the closest table entry (halfway between two: use the z halfway between), then x = μ + zσ.',
+            },
+            // the right tail's cutoff, z left unconverted, μ left off, a row slip either way
+            distractors: [s.mu - r.z * s.sigma, r.z, r.z * s.sigma, s.mu + (r.z + 0.1) * s.sigma, s.mu + (r.z - 0.1) * s.sigma].filter(v => Number.isFinite(v)),
+          }
+        }
+      },
+    },
+    {
       id: 'middle',
       generate() {
         const s = setup(STORIES, false)
@@ -353,7 +423,7 @@ export default {
         const tie = r.lo !== r.hi ? `\\text{ (halfway between ${zs(r.lo)} and ${zs(r.hi)})}` : ''
         return {
           ask: ASK,
-          text: `${s.intro} The middle ${A}% of values lie between x₁ and x₂, centered on μ. Find ${upper ? 'x₂' : 'x₁'}.`,
+          text: `${s.intro} Between what two ${plural(s.st)} will we find the middle ${A}% of the population? Call them x₁ < x₂ and find the ${upper ? 'upper one, x₂' : 'lower one, x₁'}.`,
           latex: `P(x_1 < X < x_2) = ${dec(A / 100)}`,
           answer: x,
           answerLatex: `\\text{each tail } ${dec((1 - A / 100) / 2)}, \\text{ left area } ${dec(Number(left.toFixed(5)))}: \\; z = ${num(r.z)}${tie}, \\; x = ${dec(s.mu)} + (${num(r.z)})(${dec(s.sigma)}) = ${num(x)}`,

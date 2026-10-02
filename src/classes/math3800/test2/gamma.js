@@ -1,22 +1,15 @@
 import { randInt, choice } from '../../../engine/rand.js'
-import { lnGamma } from '../dist.js'
 import { dec, num } from './util.js'
 
 // §4.3: the gamma function, the integral behind every gamma pdf, the constant
 // that makes A x^m e^{-x/β} a pdf, and the gamma mean and variance. Answers are
-// exact: factorials, products of half-integers, and whole-number (or β = 1/2,
-// written e^{-2x}) scales.
+// exact: factorials and whole-number (or β = 1/2, written e^{-2x}) scales. The
+// review list only asks for Γ(α) and Γ(n + 1) = n!, so no half-integers.
 
 const fact = n => {
   let f = 1
   for (let i = 2; i <= n; i++) f *= i
   return f
-}
-// Γ(α + k)/Γ(α) = α(α + 1)···(α + k − 1)
-const rising = (a, k) => {
-  let p = 1
-  for (let i = 0; i < k; i++) p *= a + i
-  return p
 }
 const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b))
 
@@ -24,11 +17,6 @@ const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b))
 const xPow = m => (m === 1 ? 'x' : `x^{${m}}`)
 const expo = b => (b === 0.5 ? 'e^{-2x}' : b === 1 ? 'e^{-x}' : `e^{-x/${b}}`)
 const bPow = (b, k) => (b === 0.5 ? `\\left(\\tfrac{1}{2}\\right)^{${k}}` : `${b}^{${k}}`)
-// a half-integer argument as 2.5, or as \tfrac{5}{2}
-const arg = (a, frac) => (frac && !Number.isInteger(a) ? `\\tfrac{${2 * a}}{2}` : dec(a))
-const G = (a, frac) => (frac && !Number.isInteger(a) ? `\\Gamma\\left(${arg(a, true)}\\right)` : `\\Gamma(${dec(a)})`)
-// Γ(a) to 4 decimals, as a problem would hand it to you
-const gammaValue = a => Number(Math.exp(lnGamma(a)).toFixed(4))
 
 const HINT_GAMMA = {
   latex: '\\Gamma(\\alpha) = \\int_0^{\\infty} z^{\\alpha-1}e^{-z}\\,dz, \\quad \\Gamma(n+1) = n!',
@@ -54,7 +42,7 @@ export default {
     ],
     how: [
       'Match the integral to Γ: the power of z is α − 1. ∫ z³e^(−z) dz is Γ(4) = 3! = 6. Being off by one here is the classic slip.',
-      'Not a whole number? Step with Γ(α + 1) = αΓ(α): Γ(4.5) = 3.5 · 2.5 · Γ(2.5). So Γ(α + k)/Γ(α) = α(α + 1)···(α + k − 1).',
+      'The review list: ∫₀^∞ x⁴e^(−x) dx is not integration by parts, it is Γ(5) = 4! = 24. Any power of x times e^(−x) from 0 to ∞ is a gamma integral.',
       'With a scale: ∫ x^(α−1)e^(−x/β) dx = Γ(α)β^α. For x²e^(−x/3): α = 3, β = 3, so 2! · 3³ = 54. Read e^(−2x) as β = 1/2.',
       'The A that makes A·x^(α−1)e^(−x/β) a pdf is 1 over that integral: A = 1/(Γ(α)β^α). For x²e^(−x/3), A = 1/54.',
       'Read α and β off the pdf (α = power of x plus 1), then μ = αβ and σ² = αβ².',
@@ -90,61 +78,6 @@ export default {
           tolerance: 0.001,
           hint: HINT_GAMMA,
           distractors: [fact(k), fact(k - 2), k],
-        }
-      },
-    },
-    {
-      id: 'recursion',
-      generate() {
-        const frac = Math.random() < 0.4
-        const kind = choice(['ratio', 'ratio', 'up', 'down'])
-        const a = choice([0.5, 1.5, 2.5, 3.5, 4.5])
-        const k = randInt(1, kind === 'ratio' ? 3 : 2)
-        const prod = rising(a, k)
-        // the factors α + k − 1, ..., α, largest first
-        const factors = Array.from({ length: k }, (_, i) => arg(a + k - 1 - i, frac)).join(' \\cdot ')
-        const hint = {
-          latex: '\\Gamma(\\alpha+1) = \\alpha\\,\\Gamma(\\alpha) \\;\\Rightarrow\\; \\Gamma(\\alpha+k) = (\\alpha+k-1)\\cdots(\\alpha+1)\\,\\alpha\\,\\Gamma(\\alpha)',
-          text: 'Peel one step at a time: each step down multiplies by the number one below the argument. Γ(4.5) = 3.5 · Γ(3.5) = 3.5 · 2.5 · Γ(2.5).',
-        }
-        if (kind === 'ratio') {
-          return {
-            ask: 'Use Γ(α + 1) = αΓ(α).',
-            latex: `\\frac{${G(a + k, frac)}}{${G(a, frac)}} = \\,?`,
-            answer: prod,
-            answerLatex: `${G(a + k, frac)} = ${factors} \\cdot ${G(a, frac)}, \\text{ so the ratio} = ${num(prod)}`,
-            placeholder: 'e.g. 8.75',
-            tolerance: Math.max(0.001, prod * 0.001),
-            hint,
-            distractors: [rising(a + 1, k), rising(a, k + 1), k > 1 ? rising(a, k - 1) : a + 1],
-          }
-        }
-        if (kind === 'up') {
-          const v = gammaValue(a)
-          const ans = v * prod
-          return {
-            ask: 'Use Γ(α + 1) = αΓ(α) to step from the value given.',
-            latex: `\\begin{gathered} ${G(a, frac)} \\approx ${v} \\\\ ${G(a + k, frac)} = \\,? \\end{gathered}`,
-            answer: ans,
-            answerLatex: `${G(a + k, frac)} = ${factors} \\cdot ${v} = ${num(ans)}`,
-            placeholder: 'e.g. 11.63',
-            tolerance: Math.max(0.0005, ans * 0.002),
-            hint,
-            distractors: [v * rising(a + 1, k), v * rising(a, k + 1), v * (a + k)],
-          }
-        }
-        // down: from Γ(α + k), divide back to Γ(α)
-        const v = gammaValue(a + k)
-        const ans = v / prod
-        return {
-          ask: 'Use Γ(α + 1) = αΓ(α) to step down from the value given.',
-          latex: `\\begin{gathered} ${G(a + k, frac)} \\approx ${v} \\\\ ${G(a, frac)} = \\,? \\end{gathered}`,
-          answer: ans,
-          answerLatex: `${G(a, frac)} = \\frac{${G(a + k, frac)}}{${factors}} = \\frac{${v}}{${factors}} = ${num(ans)}`,
-          placeholder: 'e.g. 1.329',
-          tolerance: Math.max(0.0005, ans * 0.002),
-          hint,
-          distractors: [v * prod, v / rising(a + 1, k), v / (a + k)],
         }
       },
     },
